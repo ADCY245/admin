@@ -60,8 +60,8 @@ function setupEventListeners() {
 async function handleLogin(e) {
   if (e) e.preventDefault();
   
-  const login = loginInput.value.trim();
-  const password = passwordInput.value.trim();
+  const email = emailInput ? emailInput.value.trim() : '';
+  const password = passwordInput ? passwordInput.value.trim() : '';
   
   // Clear previous errors
   clearMessages();
@@ -69,7 +69,7 @@ async function handleLogin(e) {
   // Validate inputs
   if (!email) {
     showError('Please enter your email');
-    emailInput.focus();
+    if (emailInput) emailInput.focus();
     return false;
   }
   
