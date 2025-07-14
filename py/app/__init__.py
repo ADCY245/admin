@@ -51,28 +51,40 @@ def create_app(config_class=Config):
     setup_template_loader(app)
     
     # Configure static files URL rules with role-based support
-    @app.route('/static/<path:role>/<path:filename>')
-    def serve_role_static(role, filename):
-        # Only allow known roles
-        if role not in ['user', 'dealer', 'admin']:
-            return app.send_static_file(filename)
-        return app.send_static_file(f'{role}/{filename}')
-    
     @app.route('/static/<path:filename>')
     def serve_static(filename):
-        # If the file exists directly, serve it
+        # First try to serve the file directly
         file_path = os.path.join(app.static_folder, filename)
         if os.path.exists(file_path):
             return app.send_static_file(filename)
         
-        # Otherwise check if it's a role-specific request
+        # Try to serve from the static folder root if not found in subdirectories
+        filename_only = os.path.basename(filename)
+        root_file_path = os.path.join(app.static_folder, filename_only)
+        if os.path.exists(root_file_path):
+            return app.send_static_file(filename_only)
+        
+        # Try to serve from js directory
+        js_file_path = os.path.join(app.static_folder, 'js', filename_only)
+        if os.path.exists(js_file_path):
+            return app.send_static_file(f'js/{filename_only}')
+            
+        # Try to serve from styles directory
+        styles_file_path = os.path.join(app.static_folder, 'styles', filename_only)
+        if os.path.exists(styles_file_path):
+            return app.send_static_file(f'styles/{filename_only}')
+            
+        # Try role-based paths
         parts = filename.split('/')
         if len(parts) > 1 and parts[0] in ['user', 'dealer', 'admin']:
             role = parts[0]
             remaining_path = '/'.join(parts[1:])
-            return app.send_static_file(f'{role}/{remaining_path}')
+            role_file_path = os.path.join(app.static_folder, role, remaining_path)
+            if os.path.exists(role_file_path):
+                return app.send_static_file(f'{role}/{remaining_path}')
         
-        # If not found, return 404
+        # Log the 404 for debugging
+        app.logger.warning(f'Static file not found: {filename}')
         return 'Not Found', 404
     
     app.logger.info(f"Template directory set to: {template_dir}")
