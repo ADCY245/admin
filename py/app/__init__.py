@@ -43,6 +43,10 @@ def create_app(config_class=Config):
                 static_folder=static_dir,
                 static_url_path='/static')
     
+    # Configure static file serving
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # Disable caching for development
+    app.config['TEMPLATES_AUTO_RELOAD'] = True  # Auto-reload templates in development
+    
     # Set up template loader for role-based template resolution
     setup_template_loader(app)
     
@@ -57,7 +61,8 @@ def create_app(config_class=Config):
     @app.route('/static/<path:filename>')
     def serve_static(filename):
         # If the file exists directly, serve it
-        if os.path.exists(os.path.join(app.static_folder, filename)):
+        file_path = os.path.join(app.static_folder, filename)
+        if os.path.exists(file_path):
             return app.send_static_file(filename)
         
         # Otherwise check if it's a role-specific request
