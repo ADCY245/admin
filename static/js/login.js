@@ -62,6 +62,7 @@ async function handleLogin(e) {
   
   const email = emailInput ? emailInput.value.trim() : '';
   const password = passwordInput ? passwordInput.value.trim() : '';
+  const form = loginForm || (e && e.target);
   
   // Clear previous errors
   clearMessages();
@@ -75,7 +76,7 @@ async function handleLogin(e) {
   
   if (!password) {
     showError('Please enter your password');
-    passwordInput.focus();
+    if (passwordInput) passwordInput.focus();
     return false;
   }
   
@@ -87,10 +88,16 @@ async function handleLogin(e) {
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
     
     // Create form data from the form directly
-    const formData = new FormData(loginForm);
+    const formData = new FormData(form);
+    
+    // Add email and password explicitly to ensure they're included
+    if (!formData.has('email') && email) formData.set('email', email);
+    if (!formData.has('password') && password) formData.set('password', password);
+    
+    console.log('Submitting login form with data:', Object.fromEntries(formData.entries()));
     
     // Send login request
-    const response = await fetch('/auth/login', {
+    const response = await fetch(form.action || '/auth/login', {
       method: 'POST',
       body: formData,
       headers: {
