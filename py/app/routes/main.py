@@ -97,9 +97,8 @@ def cart():
             })
             total += item_total
     
-    # Get the appropriate template based on user role
-    template = get_role_template(current_user.role, 'cart.html')
-    return render_template(template, products=products, total=total)
+    # Use the main cart template
+    return render_template('cart.html', products=products, total=total)
 
 @bp.route('/checkout', methods=['GET', 'POST'])
 @login_required
