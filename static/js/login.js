@@ -1,7 +1,7 @@
 // DOM Elements
 const loginForm = document.getElementById('loginForm');
 const loginBtn = document.getElementById('loginBtn');
-const loginInput = document.getElementById('login');
+const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const errorDiv = document.getElementById('error');
 const messageDiv = document.getElementById('message');
@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     showMessage('Registration successful! Please sign in to continue.', 'success');
   }
   
-  // Auto-focus the login input
-  if (loginInput) {
-    loginInput.focus();
+  // Auto-focus the email input
+  if (emailInput) {
+    emailInput.focus();
   }
 });
 
@@ -67,9 +67,9 @@ async function handleLogin(e) {
   clearMessages();
   
   // Validate inputs
-  if (!login) {
-    showError('Please enter your email or username');
-    loginInput.focus();
+  if (!email) {
+    showError('Please enter your email');
+    emailInput.focus();
     return false;
   }
   
@@ -86,10 +86,8 @@ async function handleLogin(e) {
     // Get the CSRF token from the form
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
     
-    // Create form data
-    const formData = new FormData();
-    formData.append('email', login);  // Changed from 'identifier' to 'email' to match the backend
-    formData.append('password', password);
+    // Create form data from the form directly
+    const formData = new FormData(loginForm);
     
     // Send login request
     const response = await fetch('/auth/login', {
