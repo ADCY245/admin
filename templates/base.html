@@ -804,7 +804,7 @@
                 e.preventDefault();
                 if (confirm('Are you sure you want to sign out?')) {
                     try {
-                        const response = await fetch('{{ url_for("api_logout") }}', {
+                        const response = await fetch('{{ url_for("auth.logout") }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -814,14 +814,14 @@
                         });
                         
                         if (response.ok) {
-                            window.location.href = '{{ url_for("login") }}';
+                            window.location.href = '{{ url_for("auth.login") }}';
                         } else {
                             console.error('Logout failed');
                             window.location.reload();
                         }
                     } catch (error) {
                         console.error('Error during logout:', error);
-                        window.location.href = '{{ url_for("login") }}';
+                        window.location.href = '{{ url_for("auth.login") }}';
                     }
                 }
             });
