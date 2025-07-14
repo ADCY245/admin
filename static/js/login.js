@@ -58,7 +58,7 @@ function setupEventListeners() {
 
 // Handle login form submission
 async function handleLogin(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   
   const login = loginInput.value.trim();
   const password = passwordInput.value.trim();
@@ -70,13 +70,13 @@ async function handleLogin(e) {
   if (!login) {
     showError('Please enter your email or username');
     loginInput.focus();
-    return;
+    return false;
   }
   
   if (!password) {
     showError('Please enter your password');
     passwordInput.focus();
-    return;
+    return false;
   }
   
   try {
@@ -91,39 +91,51 @@ async function handleLogin(e) {
     // Send login request
     const response = await fetch('/auth/login', {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      redirect: 'manual' // Prevent automatic redirect
     });
     
-    // Handle redirect for form submission
-    if (response.redirected) {
-      window.location.href = response.url;
-      return;
+    // Handle redirect response
+    if (response.status === 302 || response.redirected) {
+      const redirectUrl = response.headers.get('Location') || '/';
+      window.location.href = redirectUrl;
+      return false;
     }
     
-    // Handle JSON response
-    const data = await response.json();
-    
-    if (response.ok && data.success) {
-      // Redirect to the provided URL or fallback to '/index'
-      const redirectTo = data.redirectTo || '/index';
-      console.log('Login successful, redirecting to:', redirectTo);
-      window.location.href = redirectTo;
-    } else {
-      // Show error message from server or default message
-      const errorMessage = data.error || data.message || 'Login failed. Please check your credentials.';
-      showError(errorMessage);
+    // Handle JSON response for API errors
+    try {
+      const data = await response.json();
+      if (data.redirect) {
+        window.location.href = data.redirect;
+        return false;
+      }
       
-      // Clear password field on failed login
-      passwordInput.value = '';
-      passwordInput.focus();
+      if (response.ok && data.success) {
+        window.location.href = data.redirectTo || '/';
+        return false;
+      } else {
+        const errorMessage = data.error || data.message || 'Login failed. Please check your credentials.';
+        showError(errorMessage);
+        passwordInput.value = '';
+        passwordInput.focus();
+      }
+    } catch (jsonError) {
+      // If we can't parse JSON, it's likely a server-side redirect
+      window.location.href = '/';
+      return false;
     }
   } catch (error) {
     console.error('Login error:', error);
     showError('An error occurred. Please try again.');
   } finally {
-    // Reset loading state
     setLoading(false);
   }
+  
+  return false;
 }
 
 // Show error message

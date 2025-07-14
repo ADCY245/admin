@@ -140,7 +140,7 @@
       
       <div id="message" class="message" style="display: none;"></div>
       
-      <form id="loginForm" class="login-form" method="POST">
+      <form id="loginForm" class="login-form" onsubmit="event.preventDefault(); handleLogin(event);">
       <div class="form-group">
         <label for="login">Email or Username</label>
         <input 

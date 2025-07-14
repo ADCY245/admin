@@ -13,6 +13,11 @@ bp = Blueprint('auth', __name__)
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'redirect': url_for('main.index')
+            })
         return redirect(url_for('main.index'))
     
     form = LoginForm()
@@ -20,16 +25,41 @@ def login():
         user = User.objects(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             if not user.is_verified:
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({
+                        'success': False,
+                        'message': 'Please verify your email before logging in.'
+                    }), 403
                 flash('Please verify your email before logging in.', 'warning')
                 return redirect(url_for('auth.login'))
-                
+            
             login_user(user, remember=form.remember_me.data)
             next_page = request.args.get('next')
+            
+            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'redirect': next_page or url_for('main.index')
+                })
+                
             return redirect(next_page or url_for('main.index'))
         
-        flash('Invalid email or password', 'danger')
+        error_msg = 'Invalid email or password'
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'message': error_msg
+            }), 401
+            
+        flash(error_msg, 'danger')
     
-    # Use absolute path to ensure template is found
+    # Handle AJAX GET requests
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': False,
+            'message': 'Please provide login credentials'
+        }), 400
+    
     return render_template('auth/login.html', form=form)
 
 @bp.route('/register', methods=['GET', 'POST'])
