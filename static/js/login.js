@@ -1,11 +1,13 @@
 // DOM Elements
 const loginForm = document.getElementById('loginForm');
 const loginBtn = document.getElementById('loginBtn');
-const emailInput = document.getElementById('email');
+const loginInput = document.getElementById('login');
 const passwordInput = document.getElementById('password');
 const errorDiv = document.getElementById('error');
 const messageDiv = document.getElementById('message');
 const togglePassword = document.querySelector('.toggle-password');
+const btnText = loginBtn ? loginBtn.querySelector('.btn-text') : null;
+const btnLoader = loginBtn ? loginBtn.querySelector('.btn-loader') : null;
 
 // Initialize the login form
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,20 +19,26 @@ document.addEventListener('DOMContentLoaded', () => {
     showMessage('Registration successful! Please sign in to continue.', 'success');
   }
   
-  // Auto-focus the email input
-  if (emailInput) {
-    emailInput.focus();
+  // Auto-focus the login input
+  if (loginInput) {
+    loginInput.focus();
   }
 });
 
 // Toggle password visibility
 function togglePasswordVisibility() {
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    togglePassword.innerHTML = '<i class="fas fa-eye-slash"></i>';
-  } else {
-    passwordInput.type = 'password';
-    togglePassword.innerHTML = '<i class="fas fa-eye"></i>';
+  if (passwordInput) {
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      if (togglePassword) {
+        togglePassword.innerHTML = '<i class="fas fa-eye-slash"></i>';
+      }
+    } else {
+      passwordInput.type = 'password';
+      if (togglePassword) {
+        togglePassword.innerHTML = '<i class="fas fa-eye"></i>';
+      }
+    }
   }
 }
 
@@ -46,31 +54,33 @@ function setupEventListeners() {
     togglePassword.addEventListener('click', togglePasswordVisibility);
   }
   
-  // Handle Enter key in password field
-  if (passwordInput) {
-    passwordInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        handleLogin(e);
-      }
-    });
-  }
+  // Handle Enter key in login and password fields
+  [loginInput, passwordInput].forEach(input => {
+    if (input) {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleLogin(e);
+        }
+      });
+    }
+  });
 }
 
 // Handle login form submission
 async function handleLogin(e) {
   if (e) e.preventDefault();
   
-  const email = emailInput ? emailInput.value.trim() : '';
+  const login = loginInput ? loginInput.value.trim() : '';
   const password = passwordInput ? passwordInput.value.trim() : '';
-  const form = loginForm || (e && e.target);
   
-  // Clear previous errors
+  // Clear previous errors and messages
   clearMessages();
   
   // Validate inputs
-  if (!email) {
-    showError('Please enter your email');
-    if (emailInput) emailInput.focus();
+  if (!login) {
+    showError('Please enter your email or username');
+    if (loginInput) loginInput.focus();
     return false;
   }
   
@@ -87,17 +97,20 @@ async function handleLogin(e) {
     // Get the CSRF token from the form
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
     
-    // Create form data from the form directly
-    const formData = new FormData(form);
+    // Create form data
+    const formData = new FormData();
+    formData.append('identifier', login);
+    formData.append('password', password);
     
-    // Add email and password explicitly to ensure they're included
-    if (!formData.has('email') && email) formData.set('email', email);
-    if (!formData.has('password') && password) formData.set('password', password);
+    // Add CSRF token if it exists
+    if (csrfToken) {
+      formData.append('csrf_token', csrfToken);
+    }
     
-    console.log('Submitting login form with data:', Object.fromEntries(formData.entries()));
+    console.log('Sending login request...');
     
     // Send login request
-    const response = await fetch(form.action || '/auth/login', {
+    const response = await fetch('/auth/login', {
       method: 'POST',
       body: formData,
       headers: {
@@ -109,9 +122,12 @@ async function handleLogin(e) {
       redirect: 'manual' // Prevent automatic redirect
     });
     
+    console.log('Response status:', response.status);
+    
     // Handle redirect response
     if (response.status === 302 || response.redirected) {
       const redirectUrl = response.headers.get('Location') || '/';
+      console.log('Redirecting to:', redirectUrl);
       window.location.href = redirectUrl;
       return false;
     }
@@ -119,21 +135,26 @@ async function handleLogin(e) {
     // Handle JSON response for API errors
     try {
       const data = await response.json();
-      if (data.redirect) {
-        window.location.href = data.redirect;
-        return false;
-      }
+      console.log('Response data:', data);
       
       if (response.ok && data.success) {
-        window.location.href = data.redirectTo || '/';
-        return false;
+        // Handle successful login
+        const redirectTo = data.redirect || data.redirectTo || '/';
+        console.log('Login successful, redirecting to:', redirectTo);
+        window.location.href = redirectTo;
       } else {
+        // Show error message from server or default message
         const errorMessage = data.error || data.message || 'Login failed. Please check your credentials.';
         showError(errorMessage);
-        passwordInput.value = '';
-        passwordInput.focus();
+        
+        // Clear password field on failed login
+        if (passwordInput) {
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
       }
     } catch (jsonError) {
+      console.error('Error parsing JSON response:', jsonError);
       // If we can't parse JSON, it's likely a server-side redirect
       window.location.href = '/';
       return false;
@@ -141,11 +162,18 @@ async function handleLogin(e) {
   } catch (error) {
     console.error('Login error:', error);
     showError('An error occurred. Please try again.');
-  } finally {
+    
+    // Reset loading state
     setLoading(false);
+    
+    // Re-enable form submission
+    if (loginForm) {
+      loginForm.onsubmit = (e) => {
+        e.preventDefault();
+        handleLogin(e);
+      };
+    }
   }
-  
-  return false;
 }
 
 // Show error message
@@ -153,8 +181,17 @@ function showError(message) {
   if (errorDiv) {
     errorDiv.textContent = message;
     errorDiv.style.display = 'block';
-    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Auto-hide error after 5 seconds
+    setTimeout(() => {
+      if (errorDiv) {
+        errorDiv.style.display = 'none';
+      }
+    }, 5000);
   }
+  
+  // Also log to console for debugging
+  console.error('Login error:', message);
 }
 
 // Show success message
@@ -190,19 +227,16 @@ function clearMessages() {
 
 // Set loading state
 function setLoading(isLoading) {
-  if (!loginBtn) return;
-  
-  const btnText = loginBtn.querySelector('.btn-text');
-  const btnLoader = loginBtn.querySelector('.btn-loader');
+  if (!loginBtn || !btnText || !btnLoader) return;
   
   if (isLoading) {
     loginBtn.disabled = true;
-    if (btnText) btnText.style.visibility = 'hidden';
-    if (btnLoader) btnLoader.style.display = 'flex';
+    btnText.style.visibility = 'hidden';
+    btnLoader.style.display = 'block';
   } else {
     loginBtn.disabled = false;
-    if (btnText) btnText.style.visibility = 'visible';
-    if (btnLoader) btnLoader.style.display = 'none';
+    btnText.style.visibility = 'visible';
+    btnLoader.style.display = 'none';
   }
 }
 
