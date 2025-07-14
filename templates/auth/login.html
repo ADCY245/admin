@@ -141,6 +141,7 @@
       <div id="message" class="message" style="display: none;"></div>
       
       <form id="loginForm" class="login-form" onsubmit="event.preventDefault(); handleLogin(event);">
+        {{ form.hidden_tag() }}  {# This includes the CSRF token #}
       <div class="form-group">
         <label for="login">Email or Username</label>
         <input 
