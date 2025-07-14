@@ -1,0 +1,69 @@
+# Core
+Flask==2.3.3
+Werkzeug==2.3.7
+Jinja2==3.1.2
+itsdangerous==2.1.2
+click==8.1.7
+
+# Database
+Flask-MongoEngine==1.0.0
+pymongo==4.5.0
+mongoengine==0.27.0
+
+# Authentication
+Flask-Login==0.6.2
+Flask-WTF==1.2.1
+email-validator==2.1.0.post1
+PyJWT==2.8.0
+
+# Forms
+WTForms==3.0.1
+WTForms-MongoEngine==0.4.6
+
+# Email
+Flask-Mail==0.9.1
+
+# Environment variables
+python-dotenv==1.0.0
+
+# API
+Flask-Cors==4.0.0
+marshmallow==3.20.1
+
+# Production
+waitress==2.1.2
+gunicorn==21.2.0
+
+# Development
+pytest==7.4.0
+pytest-cov==4.1.0
+black==23.7.0
+flake8==6.1.0
+
+# Utilities
+python-dateutil==2.8.2
+pytz==2023.3
+requests==2.31.0
+
+# Security
+bcrypt==4.0.1
+cryptography==41.0.3
+
+# File handling
+Pillow==10.0.0
+
+# Async
+celery==5.3.4
+redis==5.0.1
+
+# Monitoring
+sentry-sdk[flask]==1.30.0
+
+# Documentation
+sphinx==7.1.2
+sphinx-rtd-theme==1.3.0
+
+# Testing
+pytest-mock==3.11.1
+factory-boy==3.2.1
+Faker==19.3.0

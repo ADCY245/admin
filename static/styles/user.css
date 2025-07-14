@@ -1,0 +1,205 @@
+/* User Dashboard Styles */
+
+/* Base Styles */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    @apply bg-gray-50;
+}
+
+/* Navigation */
+.user-nav {
+    @apply bg-blue-600 text-white shadow-md;
+}
+
+.user-nav-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.user-nav-content {
+    @apply flex justify-between h-16;
+}
+
+.user-nav-logo {
+    @apply flex items-center text-xl font-bold;
+}
+
+.user-nav-links {
+    @apply flex items-center space-x-4;
+}
+
+.user-nav-link {
+    @apply px-3 py-2 rounded-md text-sm font-medium hover:bg-blue-500 transition-colors duration-200;
+}
+
+/* Main Content */
+.user-container {
+    @apply max-w-7xl mx-auto py-6 sm:px-6 lg:px-8;
+}
+
+.user-content {
+    @apply px-4 py-6 sm:px-0;
+}
+
+/* Cards */
+.user-card {
+    @apply bg-white shadow overflow-hidden sm:rounded-lg mb-6;
+}
+
+.user-card-header {
+    @apply px-4 py-5 sm:px-6 border-b border-gray-200;
+}
+
+.user-card-title {
+    @apply text-lg leading-6 font-medium text-gray-900;
+}
+
+.user-card-subtitle {
+    @apply mt-1 max-w-2xl text-sm text-gray-500;
+}
+
+.user-card-body {
+    @apply px-4 py-5 sm:p-6;
+}
+
+/* Profile Section */
+.profile-section {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-6;
+}
+
+.profile-info {
+    @apply bg-white shadow overflow-hidden sm:rounded-lg;
+}
+
+.profile-avatar {
+    @apply h-32 w-32 rounded-full mx-auto mt-6 border-4 border-white shadow-lg;
+}
+
+.profile-details {
+    @apply px-4 py-5 sm:p-6;
+}
+
+.profile-detail-group {
+    @apply py-3 border-b border-gray-200;
+}
+
+.profile-detail-label {
+    @apply text-sm font-medium text-gray-500;
+}
+
+.profile-detail-value {
+    @apply mt-1 text-sm text-gray-900;
+}
+
+/* Order History */
+.order-item {
+    @apply border-b border-gray-200 last:border-b-0;
+}
+
+.order-header {
+    @apply px-4 py-4 sm:px-6 flex justify-between items-center;
+}
+
+.order-title {
+    @apply text-lg font-medium text-blue-600;
+}
+
+.order-meta {
+    @apply mt-1 text-sm text-gray-500;
+}
+
+.order-status {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+/* Forms */
+.user-form-group {
+    @apply mb-4;
+}
+
+.user-form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+}
+
+.user-form-input {
+    @apply mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm;
+}
+
+/* Buttons */
+.user-btn {
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500;
+}
+
+.user-btn-outline {
+    @apply border border-gray-300 text-gray-700 bg-white hover:bg-gray-50;
+}
+
+.user-btn-danger {
+    @apply bg-red-600 hover:bg-red-700 focus:ring-red-500;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 640px) {
+    .profile-section {
+        @apply grid-cols-1;
+    }
+    
+    .user-nav-links {
+        @apply hidden;
+    }
+    
+    .mobile-menu-button {
+        @apply block;
+    }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+}
+
+/* Print Styles */
+@media print {
+    .user-nav,
+    .no-print {
+        display: none !important;
+    }
+    
+    .user-container {
+        padding: 0 !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+        font-size: 12px;
+    }
+    
+    .user-card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+        page-break-inside: avoid;
+    }
+}

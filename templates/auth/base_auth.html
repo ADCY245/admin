@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Authentication - Product Calculator{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom Auth CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/auth.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    <!-- Flash Messages -->
+    <div id="flash-messages" class="fixed top-4 right-4 z-50 space-y-2 w-96 max-w-full">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message flash-{{ category }} px-6 py-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out" role="alert">
+                        <div class="flex items-center">
+                            {% if category == 'success' %}
+                                <i class="fas fa-check-circle mr-3"></i>
+                            {% elif category == 'error' %}
+                                <i class="fas fa-exclamation-circle mr-3"></i>
+                            {% elif category == 'warning' %}
+                                <i class="fas fa-exclamation-triangle mr-3"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle mr-3"></i>
+                            {% endif %}
+                            <span>{{ message }}</span>
+                            <button type="button" class="ml-auto -mx-1.5 -my-1.5 text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8" data-dismiss-target="#flash-message-{{ loop.index }}" aria-label="Close">
+                                <span class="sr-only">Close</span>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <a href="{{ url_for('main.index') }}" class="inline-block">
+                    <img src="https://i.ibb.co/1GVLnJcc/image-2025-07-04-163516213.png" alt="Product Calculator" class="h-16 mx-auto mb-4">
+                    <h1 class="text-2xl font-bold text-gray-800">Product Calculator</h1>
+                </a>
+            </div>
+            
+            <!-- Auth Card -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <!-- Card Header -->
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        {% block card_title %}{% endblock %}
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">
+                        {% block card_subtitle %}{% endblock %}
+                    </p>
+                </div>
+                
+                <!-- Card Content -->
+                <div class="p-6">
+                    {% block content %}{% endblock %}
+                </div>
+                
+                <!-- Card Footer -->
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 text-center">
+                    {% block card_footer %}{% endblock %}
+                </div>
+            </div>
+            
+            <!-- Additional Links -->
+            <div class="mt-6 text-center text-sm text-gray-600">
+                {% block auth_links %}{% endblock %}
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="py-4 text-center text-sm text-gray-500">
+        <div class="container mx-auto px-4">
+            <p>&copy; {{ now.year }} Product Calculator. All rights reserved.</p>
+        </div>
+    </footer>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.3/dist/cdn.min.js" defer></script>
+    
+    <script>
+        // Auto-dismiss flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-dismiss flash messages
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                    setTimeout(() => message.remove(), 300);
+                }, 5000);
+                
+                // Add click handler to dismiss button
+                const closeBtn = message.querySelector('[data-dismiss-target]');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', function() {
+                        message.style.opacity = '0';
+                        setTimeout(() => message.remove(), 300);
+                    });
+                }
+            });
+            
+            // Add animation classes
+            document.body.classList.add('transition-colors', 'duration-200');
+        });
+        
+        // Toggle password visibility
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = document.querySelector(`[onclick="togglePassword('${inputId}')"] i`);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
