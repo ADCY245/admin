@@ -22,7 +22,11 @@ def login():
     
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.objects(email=form.email.data).first()
+        # Try to get user by email or username
+        identifier = form.email.data  # This could be email or username
+        user = User.objects.filter(email=identifier).first() or \
+               User.objects.filter(username=identifier).first()
+               
         if user and user.check_password(form.password.data):
             if not user.is_verified:
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':

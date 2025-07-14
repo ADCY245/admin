@@ -145,7 +145,8 @@
       
       <div id="message" class="message" style="display: none;"></div>
       
-      <form id="loginForm" class="login-form" method="POST">
+      <form id="loginForm" class="login-form" method="POST" action="{{ url_for('auth.login') }}">
+        {{ form.hidden_tag() }}  <!-- This includes the CSRF token -->
       <div class="form-group">
         <label for="login">Email or Username</label>
         <input 

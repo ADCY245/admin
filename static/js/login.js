@@ -73,6 +73,7 @@ async function handleLogin(e) {
   
   const login = loginInput ? loginInput.value.trim() : '';
   const password = passwordInput ? passwordInput.value.trim() : '';
+  const form = e ? e.target : document.getElementById('loginForm');
   
   // Clear previous errors and messages
   clearMessages();
@@ -97,26 +98,19 @@ async function handleLogin(e) {
     // Get the CSRF token from the form
     const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
     
-    // Create form data
-    const formData = new FormData();
-    formData.append('identifier', login);
-    formData.append('password', password);
-    
-    // Add CSRF token if it exists
-    if (csrfToken) {
-      formData.append('csrf_token', csrfToken);
-    }
+    // Create form data from the actual form
+    const formData = new FormData(form);
     
     console.log('Sending login request...');
+    console.log('Form data:', Object.fromEntries(formData.entries()));
     
     // Send login request
-    const response = await fetch('/auth/login', {
+    const response = await fetch(form.action || '/auth/login', {
       method: 'POST',
       body: formData,
       headers: {
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-CSRFToken': csrfToken || ''
+        'X-Requested-With': 'XMLHttpRequest'
       },
       credentials: 'same-origin',
       redirect: 'manual' // Prevent automatic redirect

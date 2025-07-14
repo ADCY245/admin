@@ -5,10 +5,18 @@ from ..models import User
 
 class LoginForm(FlaskForm):
     """Form for user login."""
-    email = StringField('Email', validators=[DataRequired(), Email()])
+    email = StringField('Email or Username', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     remember_me = BooleanField('Remember Me')
     submit = SubmitField('Sign In')
+    
+    def validate_email(self, field):
+        """Custom validation to check if user exists with this email or username."""
+        identifier = field.data
+        user = User.objects.filter(email=identifier).first() or \
+               User.objects.filter(username=identifier).first()
+        if not user:
+            raise ValidationError('No account found with this email/username.')
 
 
 class RegistrationForm(FlaskForm):
