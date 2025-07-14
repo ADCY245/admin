@@ -209,16 +209,18 @@
                         });
                     </script>
                     {% endif %}
+                    <!-- Commenting out unimplemented navigation items
                     <li class="nav-item">
-                        <a class="nav-link" id="mpacksLink" href="{{ url_for('mpacks') }}" data-route="{{ url_for('mpacks') }}">
+                        <a class="nav-link disabled" href="#" title="Coming soon">
                             <i class="bi bi-box-seam"></i> M-Packs
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="blanketsLink" href="{{ url_for('blankets') }}" data-route="{{ url_for('blankets') }}">
+                        <a class="nav-link disabled" href="#" title="Coming soon">
                             <i class="bi bi-brightness-high"></i> Blankets
                         </a>
                     </li>
+                    -->
                     <li class="nav-item">
                         <a class="nav-link" id="cartLink" href="{{ url_for('cart') }}" data-route="{{ url_for('cart') }}">
                             <i class="bi bi-cart"></i> Cart <span id="cartCount" class="badge bg-danger">0</span>
