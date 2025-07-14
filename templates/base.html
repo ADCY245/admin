@@ -209,20 +209,18 @@
                         });
                     </script>
                     {% endif %}
-                    <!-- Commenting out unimplemented navigation items
                     <li class="nav-item">
-                        <a class="nav-link disabled" href="#" title="Coming soon">
+                        <a class="nav-link" id="mpacksLink" href="{{ url_for('mpacks') }}" data-route="{{ url_for('mpacks') }}">
                             <i class="bi bi-box-seam"></i> M-Packs
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link disabled" href="#" title="Coming soon">
+                        <a class="nav-link" id="blanketsLink" href="{{ url_for('blankets') }}" data-route="{{ url_for('blankets') }}">
                             <i class="bi bi-brightness-high"></i> Blankets
                         </a>
                     </li>
-                    -->
                     <li class="nav-item">
-                        <a class="nav-link" id="cartLink" href="{{ url_for('cart') }}" data-route="{{ url_for('cart') }}">
+                        <a class="nav-link" id="cartLink" href="{{ url_for('main.cart') }}" data-route="{{ url_for('main.cart') }}">
                             <i class="bi bi-cart"></i> Cart <span id="cartCount" class="badge bg-danger">0</span>
                         </a>
                     </li>
@@ -236,7 +234,7 @@
                             <span class="d-none d-md-inline">{{ current_user.username }}</span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="{{ url_for('api_profile_update') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('api.api_profile_update') }}"><i class="bi bi-person me-2"></i>My Profile</a></li>
                             <li><hr class="dropdown-divider m-0"></li>
                             <li>
                                 <form id="logout-form" class="d-inline">
