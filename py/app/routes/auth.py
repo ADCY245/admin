@@ -39,10 +39,10 @@ def login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': True,
-                    'redirect': next_page or url_for('main.index')
+                    'redirect': url_for('auth.welcome', next=next_page) if not next_page else next_page
                 })
                 
-            return redirect(next_page or url_for('main.index'))
+            return redirect(url_for('auth.welcome', next=next_page))
         
         error_msg = 'Invalid email or password'
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -177,12 +177,35 @@ def reset_password(token):
     
     return redirect(url_for('auth.forgot_password'))
 
+@bp.route('/welcome')
+@login_required
+def welcome():
+    # Determine the appropriate dashboard URL based on user role
+    if current_user.role == 'admin':
+        dashboard_url = url_for('admin.dashboard')
+    elif current_user.role == 'dealer':
+        dashboard_url = url_for('dealer.dashboard')
+    else:
+        dashboard_url = url_for('user.dashboard')
+    
+    # If it's an AJAX request, return JSON with redirect URL
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'redirect': dashboard_url
+        })
+    
+    # For regular requests, render the welcome template
+    return render_template('auth/welcome.html', 
+                         current_user=current_user,
+                         redirect_url=dashboard_url)
+
 @bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out.', 'info')
-    return redirect(url_for('main.index'))
+    return redirect(url_for('auth.login'))
 
 @bp.route('/profile')
 @login_required

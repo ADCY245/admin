@@ -141,7 +141,11 @@ async function handleLogin(e) {
         // Handle successful login
         const redirectTo = data.redirect || data.redirectTo || '/';
         console.log('Login successful, redirecting to:', redirectTo);
-        window.location.href = redirectTo;
+        
+        // If we're already on the welcome page, let it handle the final redirect
+        if (!window.location.pathname.includes('/welcome')) {
+          window.location.href = redirectTo;
+        }
       } else {
         // Show error message from server or default message
         const errorMessage = data.error || data.message || 'Login failed. Please check your credentials.';
