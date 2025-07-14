@@ -83,9 +83,12 @@ async function handleLogin(e) {
     // Show loading state
     setLoading(true);
     
+    // Get the CSRF token from the form
+    const csrfToken = document.querySelector('input[name="csrf_token"]')?.value;
+    
     // Create form data
     const formData = new FormData();
-    formData.append('identifier', login);
+    formData.append('email', login);  // Changed from 'identifier' to 'email' to match the backend
     formData.append('password', password);
     
     // Send login request
@@ -94,8 +97,10 @@ async function handleLogin(e) {
       body: formData,
       headers: {
         'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRFToken': csrfToken || ''
       },
+      credentials: 'same-origin',
       redirect: 'manual' // Prevent automatic redirect
     });
     
