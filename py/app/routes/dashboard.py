@@ -176,42 +176,4 @@ def test_role_template():
         'role': role
     }
     
-    # Log the template being rendered
-    current_app.logger.info(f'Rendering test template for role: {role}')
-    
-    # Render the template using our role-based template utility
-    return render_role_template('test_template.html', **test_data)
-
-@bp.route('/test-role-template')
-@login_required
-def test_role_template():
-    """
-    Test route to verify role-based template loading.
-    This will render a test template specific to the user's role.
-    """
-    # Get the current user's role (default to 'user' if not set)
-    role = getattr(current_user, 'role', 'user')
-    
-    # Create test data to pass to the template
-    test_data = {
-        'user': {
-            'name': current_user.name if hasattr(current_user, 'name') else 'Test User',
-            'email': current_user.email if hasattr(current_user, 'email') else 'test@example.com',
-            'role': role,
-            'join_date': '2023-01-01'  # Default join date for testing
-        },
-        'now': datetime.utcnow(),
-        'role': role
-    }
-    
-    # Try to render the role-specific template
-    try:
-        return render_role_template('test_template.html', **test_data)
-    except Exception as e:
-        # If there's an error, render a fallback template with the error
-        current_app.logger.error(f"Error rendering role template: {str(e)}")
-        return render_template('error.html', 
-                             error_message=f"Error loading {role} template: {str(e)}",
-                             **test_data)
-
 # Add any additional dashboard-related routes below
