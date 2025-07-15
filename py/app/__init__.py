@@ -124,8 +124,15 @@ def create_app(config_class=Config):
     
     # Initialize session with MongoDB backend
     from flask_session import MongoDBSessionInterface
+    from pymongo import MongoClient
+    
+    # Create MongoDB client
+    mongo_client = MongoClient(app.config['MONGO_URI'])
+    
+    # Initialize session interface with MongoDB client
     app.session_interface = MongoDBSessionInterface(
         app,
+        mongo_client,
         db='moneda_db',  # Database name
         collection='sessions',  # Collection name for sessions
         key_prefix='session:'  # Prefix for session keys
