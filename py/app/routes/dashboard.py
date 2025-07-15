@@ -35,21 +35,35 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
-    # Get user role from session or current_user
-    user_role = session.get('user_role') or getattr(current_user, 'role', 'user')
+    # Get user role from current_user first, then session
+    user_role = getattr(current_user, 'role', None)
+    if not user_role:
+        user_role = session.get('user_role', 'user')
     
     # Ensure role is valid
     if user_role not in ['admin', 'dealer', 'user']:
         user_role = 'user'
     
-    # Redirect to the appropriate dashboard based on user role
+    # Set role in session for consistency
+    session['user_role'] = user_role
+    
+    # Get the target dashboard URL
     if user_role == 'admin':
-        return redirect(url_for('dashboard.admin_dashboard'))
+        target_url = url_for('dashboard.admin_dashboard')
     elif user_role == 'dealer':
-        return redirect(url_for('dashboard.dealer_dashboard'))
+        target_url = url_for('dashboard.dealer_dashboard')
     else:
-        # Default to user dashboard for any other roles
-        return redirect(url_for('dashboard.user_dashboard'))
+        target_url = url_for('dashboard.user_dashboard')
+    
+    # Check if we're already at the correct dashboard
+    current_path = request.path
+    if current_path == target_url:
+        return render_role_template('dashboard.html', 
+                                  title=f"{user_role.capitalize()} Dashboard",
+                                  role=user_role)
+    
+    # Redirect to the appropriate dashboard
+    return redirect(target_url)
 
 # Alias for backward compatibility
 bp.add_url_rule('/dashboard', 'dashboard', index)

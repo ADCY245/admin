@@ -8,13 +8,12 @@ def setup_template_loader(app):
     # Get the base template directory
     template_dir = app.template_folder
     
-    # Create loaders for each role and the base directory
-    # Create loaders for each role in priority order (admin first)
+    # Create loaders in priority order (admin first)
     loaders = [
-        FileSystemLoader(template_dir),  # Base templates first
         FileSystemLoader(os.path.join(template_dir, 'admin')),
         FileSystemLoader(os.path.join(template_dir, 'dealer')),
-        FileSystemLoader(os.path.join(template_dir, 'user'))
+        FileSystemLoader(os.path.join(template_dir, 'user')),
+        FileSystemLoader(template_dir)  # Base templates last
     ]
     
     # Set up the choice loader with all loaders
