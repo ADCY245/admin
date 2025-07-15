@@ -31,29 +31,31 @@ def index():
     """
     Main dashboard route that redirects users to their respective role-based dashboards.
     """
-    # Get user role from current_user first, then session
-    user_role = getattr(current_user, 'role', None)
-    if not user_role:
-        user_role = session.get('user_role', 'user')
-    
-    # Ensure role is valid
-    if user_role not in ['admin', 'dealer', 'user']:
-        user_role = 'user'
-    
-    session['user_role'] = user_role
-    
-    # Get the target dashboard URL
-    target_url = url_for(f'dashboard.{user_role}_dashboard')
-    
-    # If it's an AJAX request, return JSON with redirect URL
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            'success': True,
-            'redirect': target_url
-        })
-    
-    # For regular requests, redirect to the target dashboard
-    return redirect(target_url)
+    try:
+        # Get user role from current_user
+        user_role = getattr(current_user, 'role', 'user')
+        
+        # Ensure role is valid
+        if user_role not in ['admin', 'dealer', 'user']:
+            flash('Invalid user role. Contact support.', 'error')
+            return redirect(url_for('auth.logout'))
+        
+        # Set role in session for consistency
+        session['user_role'] = user_role
+        
+        # Redirect to appropriate dashboard
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'redirect': url_for(f'dashboard.{user_role}_dashboard')
+            })
+        
+        return redirect(url_for(f'dashboard.{user_role}_dashboard'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in dashboard index: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('auth.logout'))
 
 # Alias for backward compatibility
 bp.add_url_rule('/dashboard', 'dashboard', index)
@@ -66,7 +68,7 @@ def admin_dashboard():
         # Ensure user is admin
         if current_user.role != 'admin':
             flash('Access denied. Admin privileges required.', 'danger')
-            return redirect(url_for('dashboard.index'))
+            return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
         
         # Set role in session
         session['user_role'] = 'admin'
@@ -93,79 +95,93 @@ def admin_dashboard():
     except Exception as e:
         current_app.logger.error(f"Error in admin dashboard: {str(e)}")
         flash('An error occurred. Please try again.', 'error')
-        return redirect(url_for('dashboard.index'))
+        return redirect(url_for('auth.logout'))
 
 @bp.route('/dealer')
 @login_required
 def dealer_dashboard():
     """Dealer dashboard view."""
-    if current_user.role != 'dealer':
-        flash('You do not have permission to access this page.', 'error')
-        return redirect(url_for('dashboard.index'))
-    
-    # Ensure the role is set correctly in the session
-    session['user_role'] = 'dealer'
-    
-    # Add any dealer-specific data here
-    stats = {
-        'total_orders': 0,  # Replace with actual data
-        'pending_orders': 0,  # Replace with actual data
-        'completed_orders': 0,  # Replace with actual data
-        'total_spent': 0,  # Replace with actual data
-        'revenue': 0  # For backward compatibility
-    }
-    
-    recent_orders = []  # Replace with actual data
-    
-    return render_role_template('dashboard.html',
-                             title='Dealer Dashboard',
-                             stats=stats,
-                             recent_orders=recent_orders,
-                             user={
-                                 'name': current_user.username,
-                                 'email': current_user.email,
-                                 'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A',
-                                 'avatar': url_for('static', filename='images/default-avatar.png')
-                             },
-                             role='dealer',
-                             now=datetime.utcnow())
+    try:
+        # Ensure user is dealer
+        if current_user.role != 'dealer':
+            flash('Access denied. Dealer privileges required.', 'danger')
+            return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
+        
+        # Set role in session
+        session['user_role'] = 'dealer'
+        
+        # Add dealer-specific data
+        stats = {
+            'total_orders': 0,  # Replace with actual data
+            'pending_orders': 0,  # Replace with actual data
+            'completed_orders': 0,  # Replace with actual data
+            'total_spent': 0,  # Replace with actual data
+            'revenue': 0  # For backward compatibility
+        }
+        
+        recent_orders = []  # Replace with actual data
+        
+        return render_role_template('dashboard.html',
+                              title='Dealer Dashboard',
+                              stats=stats,
+                              recent_orders=recent_orders,
+                              user={
+                                  'name': current_user.username,
+                                  'email': current_user.email,
+                                  'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A',
+                                  'avatar': url_for('static', filename='images/default-avatar.png')
+                              },
+                              role='dealer',
+                              now=datetime.utcnow())
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in dealer dashboard: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('auth.logout'))
 
 @bp.route('/user')
 @login_required
 def user_dashboard():
     """User dashboard view."""
-    if current_user.role not in ['user', 'admin', 'dealer']:
-        flash('You do not have permission to access this page.', 'error')
-        return redirect(url_for('dashboard.index'))
-    
-    # Ensure the role is set correctly in the session
-    session['user_role'] = 'user'
-    
-    # Add any user-specific data here
-    user_data = {
-        'name': current_user.username,
-        'email': current_user.email,
-        'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A',
-        'avatar': url_for('static', filename='images/default-avatar.png')
-    }
-    
-    # User stats
-    stats = {
-        'total_orders': 0,  # Replace with actual data
-        'pending_orders': 0,  # Replace with actual data
-        'completed_orders': 0,  # Replace with actual data
-        'total_spent': 0  # Replace with actual data
-    }
-    
-    recent_orders = []  # Replace with actual data
-    
-    return render_role_template('dashboard.html',
-                             title='My Dashboard',
-                             user=user_data,
-                             stats=stats,
-                             recent_orders=recent_orders,
-                             role='user',
-                             now=datetime.utcnow())
+    try:
+        # Ensure user is a regular user
+        if current_user.role != 'user':
+            flash('Access denied. User privileges required.', 'danger')
+            return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
+        
+        # Set role in session
+        session['user_role'] = 'user'
+        
+        # Add user-specific data
+        user_data = {
+            'name': current_user.username,
+            'email': current_user.email,
+            'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A',
+            'avatar': url_for('static', filename='images/default-avatar.png')
+        }
+        
+        # User stats
+        stats = {
+            'total_orders': 0,  # Replace with actual data
+            'pending_orders': 0,  # Replace with actual data
+            'completed_orders': 0,  # Replace with actual data
+            'total_spent': 0  # Replace with actual data
+        }
+        
+        recent_orders = []  # Replace with actual data
+        
+        return render_role_template('dashboard.html',
+                              title='My Dashboard',
+                              user=user_data,
+                              stats=stats,
+                              recent_orders=recent_orders,
+                              role='user',
+                              now=datetime.utcnow())
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in user dashboard: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('auth.logout'))
 
 @bp.route('/test-role-template')
 @login_required

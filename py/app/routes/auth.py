@@ -46,15 +46,13 @@ def login():
             
             login_user(user, remember=True, force=True)
             
-            # For AJAX requests, return JSON response
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'success': True,
-                    'redirect': url_for(f'dashboard.{user.role}_dashboard')
-                })
-            
-            # For regular requests, redirect directly to role-based dashboard
-            return redirect(url_for(f'dashboard.{user.role}_dashboard'))
+            # Always redirect to the appropriate dashboard based on role
+            if user.role == 'admin':
+                return redirect(url_for('dashboard.admin_dashboard'))
+            elif user.role == 'dealer':
+                return redirect(url_for('dashboard.dealer_dashboard'))
+            else:
+                return redirect(url_for('dashboard.user_dashboard'))
         
         error_msg = 'Invalid email or password'
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
