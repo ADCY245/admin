@@ -108,13 +108,21 @@ def create_app(config_class=Config):
         connect(host=mongo_uri)
         
         # Configure Flask-Session with MongoDB
+        client = MongoClient(app.config.get('MONGO_URI'))
         app.config['SESSION_TYPE'] = 'mongodb'
-        app.config['SESSION_MONGODB'] = MongoClient(app.config.get('MONGO_URI'))
+        app.config['SESSION_MONGODB'] = client
         app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
         app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
         app.config['SESSION_USE_SIGNER'] = False
         app.config['SESSION_PERMANENT'] = True
         Session(app)
+        
+        # Initialize mongo_users helper
+        try:
+            from mongo_users import init_mongo_connection
+            init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
+        except Exception as e:
+            app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
         
         app.logger.info("MongoDB connection initialized successfully")
         

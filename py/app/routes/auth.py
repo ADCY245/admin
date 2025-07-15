@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from ..models import User
 from ..forms import LoginForm, RegistrationForm, ForgotPasswordForm, ResetPasswordForm
 from ..utils.email import send_password_reset_email, send_verification_email
+from mongo_users import find_user_by_id
 from datetime import datetime, timedelta
 import uuid
 import jwt
