@@ -111,8 +111,6 @@ def create_app(config_class=Config):
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
         raise
     
-    Session(app)
-    
     # Setup CORS
     CORS(app, resources={
         r"/api/*": {
