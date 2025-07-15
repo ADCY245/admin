@@ -31,10 +31,6 @@ def index():
     """
     Main dashboard route that redirects users to their respective role-based dashboards.
     """
-    # Ensure we have a valid user and role
-    if not current_user.is_authenticated:
-        return redirect(url_for('auth.login'))
-    
     # Get user role from current_user first, then session
     user_role = getattr(current_user, 'role', None)
     if not user_role:
@@ -44,11 +40,15 @@ def index():
     if user_role not in ['admin', 'dealer', 'user']:
         user_role = 'user'
     
-    # Set role in session for consistency
     session['user_role'] = user_role
     
     # Get the target dashboard URL
     target_url = url_for(f'dashboard.{user_role}_dashboard')
+    
+    # If there's a next URL parameter, use it
+    next_url = request.args.get('next')
+    if next_url:
+        return redirect(next_url)
     
     # If it's an AJAX request, return JSON with redirect URL
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -57,7 +57,7 @@ def index():
             'redirect': target_url
         })
     
-    # For regular requests, redirect directly
+    # For regular requests, redirect to the target dashboard
     return redirect(target_url)
 
 # Alias for backward compatibility
