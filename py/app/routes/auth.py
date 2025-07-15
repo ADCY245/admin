@@ -54,11 +54,11 @@ def login():
             
             # Always redirect to the appropriate dashboard based on role
             if user.role == 'admin':
-                return redirect(url_for('dashboard.admin_dashboard'))
+                return redirect(url_for('dashboard.admin'))
             elif user.role == 'dealer':
-                return redirect(url_for('dashboard.dealer_dashboard'))
+                return redirect(url_for('dashboard.dealer'))
             else:
-                return redirect(url_for('dashboard.user_dashboard'))
+                return redirect(url_for('dashboard.user'))
         
         # Handle AJAX GET requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
