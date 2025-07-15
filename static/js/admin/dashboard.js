@@ -4,7 +4,23 @@ console.log('Admin dashboard loaded');
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize any admin-specific functionality here
     setupEventListeners();
+    loadAdminData();
 });
+
+function loadAdminData() {
+    console.log('Loading admin dashboard data...');
+    
+    fetch('/api/admin/dashboard')
+        .then(response => response.json())
+        .then(data => {
+            updateStats(data.stats);
+            updateRecentOrders(data.recent_orders);
+        })
+        .catch(error => {
+            console.error('Error loading admin data:', error);
+            showNotification('Failed to load dashboard data. Please try again later.', 'error');
+        });
+}
 
 function setupEventListeners() {
     // Add any event listeners for admin dashboard

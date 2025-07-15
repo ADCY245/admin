@@ -58,12 +58,13 @@ bp.add_url_rule('/dashboard', 'dashboard', index)
 @login_required
 def admin_dashboard():
     """Admin dashboard view."""
+    # Ensure the role is set correctly in the session first
+    session['user_role'] = 'admin'
+    
+    # Verify user has admin role
     if current_user.role != 'admin':
         flash('You do not have permission to access this page.', 'error')
         return redirect(url_for('dashboard.index'))
-    
-    # Ensure the role is set correctly in the session
-    session['user_role'] = 'admin'
     
     # Add any admin-specific data here
     stats = {
@@ -180,11 +181,15 @@ def test_role_template():
         'role': role
     }
     
-# API route for user dashboard data
+# API routes for role-specific dashboard data
+
 @bp.route('/api/user/dashboard')
 @login_required
 def api_user_dashboard():
     """Return JSON data for user dashboard JS."""
+    if current_user.role != 'user':
+        abort(403)
+    
     # Placeholder data – replace with real queries
     user_obj = {
         'username': current_user.username,
@@ -199,5 +204,30 @@ def api_user_dashboard():
     }
     orders = []
     return jsonify({'success': True, 'user': user_obj, 'stats': stats, 'orders': orders})
+
+@bp.route('/api/admin/dashboard')
+@login_required
+def api_admin_dashboard():
+    """Return JSON data for admin dashboard JS."""
+    if current_user.role != 'admin':
+        abort(403)
+    
+    # Admin-specific data
+    stats = {
+        'total_users': 0,  # Replace with actual data
+        'total_products': 0,
+        'total_orders': 0,
+        'revenue': 0,
+        'pending_orders': 0,
+        'completed_orders': 0
+    }
+    
+    recent_orders = []  # Replace with actual data
+    
+    return jsonify({
+        'success': True,
+        'stats': stats,
+        'recent_orders': recent_orders
+    })
 
 # Add any additional dashboard-related routes below
