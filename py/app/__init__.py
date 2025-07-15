@@ -111,6 +111,14 @@ def create_app(config_class=Config):
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
         raise
     
+    # Register Jinja filters
+    @app.template_filter('datetimeformat')
+    def datetimeformat(value, fmt='%b %d, %Y'):
+        """Format a datetime value in templates."""
+        if value is None:
+            return ''
+        return value.strftime(fmt)
+
     # Setup CORS
     CORS(app, resources={
         r"/api/*": {
