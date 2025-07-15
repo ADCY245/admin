@@ -31,12 +31,15 @@ def index():
     """
     Main dashboard route that redirects users to their respective role-based dashboards.
     """
+    # Ensure we have a valid user and role
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
-    # Store the user's role in the session for template loading
+    # Ensure role is set in session
     if hasattr(current_user, 'role'):
         session['user_role'] = current_user.role
+    else:
+        session['user_role'] = 'user'
     
     # Redirect to the appropriate dashboard based on user role
     if current_user.role == 'admin':

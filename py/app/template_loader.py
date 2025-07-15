@@ -22,22 +22,27 @@ def setup_template_loader(app):
     @app.context_processor
     def inject_role():
         role = 'user'  # Default role
-        if hasattr(request, 'user_roles') and request.user_roles:
-            # If we have roles in the request (set by before_request)
-            role = request.user_roles[0]  # Use the first role
-        elif hasattr(session, 'user_role'):
-            # Fallback to session role
+        if hasattr(current_user, 'role') and current_user.is_authenticated:
+            role = current_user.role
+        elif 'user_role' in session:
             role = session.get('user_role', 'user')
         return {'current_role': role}
 
     # Add a before_request handler to set user roles
     @app.before_request
     def before_request():
-        if hasattr(request, 'user') and request.user.is_authenticated:
-            # If using Flask-Login or similar
-            request.user_roles = [request.user.role] if hasattr(request.user, 'role') else ['user']
+        # Ensure we have a session
+        if not hasattr(request, 'session'):
+            request.session = session
+            
+        # Set user role in session if not already set
+        if current_user.is_authenticated and 'user_role' not in session:
+            session['user_role'] = current_user.role
+            
+        # Set user_roles in request for template context
+        if hasattr(current_user, 'role') and current_user.is_authenticated:
+            request.user_roles = [current_user.role]
         elif 'user_id' in session:
-            # If using session-based auth
             request.user_roles = [session.get('user_role', 'user')]
         else:
             request.user_roles = ['guest']
