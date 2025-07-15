@@ -8,6 +8,7 @@ from .config import Config
 from .models import User
 from .utils.logging import setup_logging
 from .template_loader import setup_template_loader
+from flask_session import Session
 
 def create_app(config_class=Config):
     """
@@ -111,6 +112,14 @@ def create_app(config_class=Config):
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
         raise
     
+        # ------------------ Flask-Session (MongoDB) ------------------
+    app.config['SESSION_TYPE'] = 'mongodb'
+    app.config['SESSION_MONGODB'] = mongo_client
+    app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
+    app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
+    app.config['SESSION_PERMANENT'] = True
+    Session(app)
+
     # Register Jinja filters
     @app.template_filter('datetimeformat')
     def datetimeformat(value, fmt='%b %d, %Y'):

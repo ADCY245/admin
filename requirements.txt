@@ -16,4 +16,5 @@ certifi==2024.6.2
 flask-wtf==1.2.1
 Flask-CORS==4.0.0
 mongoengine==0.27.0
+Flask-Session==0.5.0
 PyJWT==2.8.0
