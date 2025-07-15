@@ -55,11 +55,11 @@ def login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': True,
-                    'redirect': url_for('dashboard.index')
+                    'redirect': url_for(f'dashboard.{user.role}_dashboard')
                 })
             
-            # For regular requests, redirect to dashboard index
-            return redirect(url_for('dashboard.index'))
+            # For regular requests, redirect directly to role-based dashboard
+            return redirect(url_for(f'dashboard.{user.role}_dashboard'))
         
         error_msg = 'Invalid email or password'
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
