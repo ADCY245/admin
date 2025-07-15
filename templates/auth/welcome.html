@@ -71,7 +71,7 @@
 </head>
 <body>
     <div class="welcome-container">
-        <div class="welcome-message">Welcome, <span id="username">{{ current_user.username }}</span>!</div>
+        <div class="welcome-message">Welcome, <span id="username">{{ current_user.username or current_user.email.split('@')[0] }}</span>!</div>
         <div class="role-badge">{{ current_user.role|capitalize }}</div>
         <p class="redirect-message">Taking you to your dashboard...</p>
         <div class="spinner"></div>
