@@ -186,11 +186,11 @@ def reset_password(token):
 def welcome():
     # Determine the appropriate dashboard URL based on user role
     if current_user.role == 'admin':
-        dashboard_url = url_for('admin.dashboard')
+        dashboard_url = url_for('dashboard.admin_dashboard')
     elif current_user.role == 'dealer':
-        dashboard_url = url_for('dealer.dashboard')
+        dashboard_url = url_for('dashboard.dealer_dashboard')
     else:
-        dashboard_url = url_for('user.dashboard')
+        dashboard_url = url_for('dashboard.user_dashboard')
     
     # If it's an AJAX request, return JSON with redirect URL
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
