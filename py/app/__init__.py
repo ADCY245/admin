@@ -116,27 +116,18 @@ def create_app(config_class=Config):
             # Connect using URI with MongoEngine
             connect(host=mongo_uri)
             
-            # Configure Flask-Session with MongoDB
-            client = MongoClient(app.config.get('MONGO_URI'))
-            app.config['SESSION_TYPE'] = 'mongodb'
-            app.config['SESSION_MONGODB'] = client
-            app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
-            app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
-            app.config['SESSION_USE_SIGNER'] = True
+            # Configure secure cookie-based sessions
+            app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+            app.config['SESSION_TYPE'] = 'filesystem'
+            app.config['SESSION_FILE_DIR'] = os.path.join(app.instance_path, 'sessions')
             app.config['SESSION_PERMANENT'] = True
+            app.config['SESSION_USE_SIGNER'] = True
             app.config['SESSION_COOKIE_SECURE'] = True
             app.config['SESSION_COOKIE_HTTPONLY'] = True
             app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-            app.config['SESSION_KEY_PREFIX'] = 'session:'
             
             # Initialize session
-            session_interface = MongoDBSessionInterface(
-                client=client,
-                db=app.config['SESSION_MONGODB_DB'],
-                collection=app.config['SESSION_MONGODB_COLLECT'],
-                key_prefix=app.config['SESSION_KEY_PREFIX']
-            )
-            app.session_interface = session_interface
+            Session(app)
             
             # Initialize mongo_users helper
             try:
