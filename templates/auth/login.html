@@ -147,7 +147,7 @@
       
       <form id="loginForm" class="login-form" method="POST" action="{{ url_for('auth.login') }}">
         {{ form.hidden_tag() }}  <!-- This includes the CSRF token -->
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
         <div class="form-group">
           <label for="email">{{ form.email.label }}</label>
           {{ form.email(class="form-control", id="email", placeholder="Enter your email or username", required=true, autocomplete="username") }}
@@ -178,7 +178,7 @@
       </div>
       
       <div class="forgot-password">
-        <a href="/forgot-password">Forgot password?</a>
+        <a h  ref="/forgot-password">Forgot password?</a>
       </div>
       
       <button type="submit" id="loginBtn" class="btn">
