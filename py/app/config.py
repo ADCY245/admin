@@ -50,9 +50,10 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     SESSION_USE_SIGNER = True
     SESSION_KEY_PREFIX = 'session:'
-    SESSION_MONGODB = os.getenv('MONGODB_HOST', 'localhost')
+    SESSION_MONGODB = os.getenv('MONGO_URI')
     SESSION_MONGODB_DB = os.getenv('MONGODB_DB', 'moneda_db')
     SESSION_MONGODB_COLLECTION = 'sessions'
+    SESSION_MONGODB_CLIENT = None
     
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
