@@ -179,4 +179,24 @@ def test_role_template():
         'role': role
     }
     
+# API route for user dashboard data
+@bp.route('/api/user/dashboard')
+@login_required
+def api_user_dashboard():
+    """Return JSON data for user dashboard JS."""
+    # Placeholder data – replace with real queries
+    user_obj = {
+        'username': current_user.username,
+        'email': current_user.email,
+        'created_at': getattr(current_user, 'created_at', datetime.utcnow()).isoformat(),
+        'avatar_url': url_for('static', filename='images/default-avatar.png', _external=False)
+    }
+    stats = {
+        'order_count': 0,
+        'total_spent': 0.0,
+        'loyalty_points': 0
+    }
+    orders = []
+    return jsonify({'success': True, 'user': user_obj, 'stats': stats, 'orders': orders})
+
 # Add any additional dashboard-related routes below
