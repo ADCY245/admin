@@ -292,41 +292,8 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.10.3/dist/cdn.min.js" defer></script>
     
-    <script>
-        // Toggle mobile sidebar
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const mobileMenuButton = document.getElementById('mobileMenuButton');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const mainContent = document.getElementById('mainContent');
-            
-            // Toggle sidebar on mobile
-            function toggleSidebar() {
-                sidebar.classList.toggle('mobile-open');
-                sidebarOverlay.classList.toggle('show');
-                document.body.classList.toggle('overflow-hidden');
-            }
-            
-            // Close sidebar when clicking outside on mobile
-            function handleClickOutside(event) {
-                if (window.innerWidth < 1024 && !sidebar.contains(event.target) && !mobileMenuButton.contains(event.target)) {
-                    sidebar.classList.remove('mobile-open');
-                    sidebarOverlay.classList.remove('show');
-                    document.body.classList.remove('overflow-hidden');
-                }
-            }
-            
-            // Add event listeners
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
-            }
-            
-            if (mobileMenuButton) {
-                mobileMenuButton.addEventListener('click', toggleSidebar);
-            }
-            
-            if (sidebarOverlay) {
+    <!-- Load role-specific dashboard JavaScript -->
+    <script src="{{ url_for('static', filename='js/' + role + '/dashboard.js') }}"></script>
                 sidebarOverlay.addEventListener('click', toggleSidebar);
             }
             

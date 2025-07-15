@@ -48,21 +48,16 @@ def index():
     session['user_role'] = user_role
     
     # Get the target dashboard URL
-    if user_role == 'admin':
-        target_url = url_for('dashboard.admin_dashboard')
-    elif user_role == 'dealer':
-        target_url = url_for('dashboard.dealer_dashboard')
-    else:
-        target_url = url_for('dashboard.user_dashboard')
+    target_url = url_for(f'dashboard.{user_role}_dashboard')
     
-    # Check if we're already at the correct dashboard
-    current_path = request.path
-    if current_path == target_url:
-        return render_role_template('dashboard.html', 
-                                  title=f"{user_role.capitalize()} Dashboard",
-                                  role=user_role)
+    # If it's an AJAX request, return JSON with redirect URL
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'redirect': target_url
+        })
     
-    # Redirect to the appropriate dashboard
+    # For regular requests, redirect directly
     return redirect(target_url)
 
 # Alias for backward compatibility
