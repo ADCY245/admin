@@ -67,6 +67,11 @@ bp.add_url_rule('/dashboard', 'dashboard', index)
 @login_required
 def admin_dashboard():
     """Admin dashboard view."""
+    # Ensure user is admin
+    if current_user.role != 'admin':
+        flash('Access denied. Admin privileges required.', 'danger')
+        return redirect(url_for('dashboard.index'))
+    
     # Ensure the role is set correctly in the session first
     session['user_role'] = 'admin'
     
