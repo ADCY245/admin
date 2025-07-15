@@ -187,6 +187,16 @@ def reset_password(token):
 @bp.route('/welcome')
 @login_required
 def welcome():
+    # Get the current user's ID from Flask-Login
+    user_id = str(current_user.get_id())
+    
+    # Fetch user data from MongoDB
+    user = find_user_by_id(user_id)
+    
+    if not user:
+        flash('User not found in database', 'error')
+        return redirect(url_for('auth.logout'))
+    
     # Get the next page from URL parameter
     next_page = request.args.get('next')
     
@@ -195,9 +205,9 @@ def welcome():
         return redirect(next_page)
     
     # Determine the appropriate dashboard URL based on user role
-    if current_user.role == 'admin':
+    if user['role'] == 'admin':
         dashboard_url = url_for('dashboard.admin_dashboard')
-    elif current_user.role == 'dealer':
+    elif user['role'] == 'dealer':
         dashboard_url = url_for('dashboard.dealer_dashboard')
     else:
         dashboard_url = url_for('dashboard.user_dashboard')

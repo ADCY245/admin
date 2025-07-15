@@ -71,16 +71,13 @@
 </head>
 <body>
     <div class="welcome-container">
-        <div class="welcome-message">Welcome, <span id="username">
-    {% if current_user.username %}
-        {{ current_user.username }}
-    {% elif current_user.email %}
-        {{ current_user.email.split('@')[0] }}
-    {% else %}
-        User
-    {% endif %}
-</span>!</div>
-        <div class="role-badge">{{ current_user.role|capitalize }}</div>
+        <div class="welcome-message">Welcome, <span id="username">{{ user.username }}</span>!</div>
+        <div class="user-email">Email: <span>{{ user.email }}</span></div>
+        <div class="role-badge">Role: {{ user.role|capitalize }}</div>
+        <div class="user-info">
+            <p>Account created: {{ user.created_at.strftime('%Y-%m-%d') }}</p>
+            <p>Status: {% if user.is_verified %}Verified{% else %}Not Verified{% endif %}</p>
+        </div>
         <p class="redirect-message">Taking you to your dashboard...</p>
         <div class="spinner"></div>
         <div class="signout-container">
@@ -92,23 +89,24 @@
         // Redirect after a short delay
         setTimeout(() => {
             // Get the redirect URL from the template variable or default to role-based URL
-            const role = '{{ current_user.role|lower }}';
+            const role = '{{ user.role|lower }}';
             let redirectUrl = '{{ redirect_url }}';
             
             if (!redirectUrl) {
                 // Default role-based redirects
                 switch(role) {
                     case 'admin':
-                        redirectUrl = '/admin/dashboard';
+                        redirectUrl = '{{ url_for("dashboard.admin_dashboard") }}';
                         break;
                     case 'dealer':
-                        redirectUrl = '/dealer/dashboard';
+                        redirectUrl = '{{ url_for("dashboard.dealer_dashboard") }}';
                         break;
                     default:
-                        redirectUrl = '/user/dashboard';
+                        redirectUrl = '{{ url_for("dashboard.user_dashboard") }}';
                 }
             }
             
+            // Redirect to the URL
             window.location.href = redirectUrl;
         }, 2000); // 2 second delay
     </script>
