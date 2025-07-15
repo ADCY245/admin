@@ -118,6 +118,7 @@ def create_app(config_class=Config):
     app.config['SESSION_MONGODB'] = MongoClient(app.config.get('MONGO_URI'))
     app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
     app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
+    app.config['SESSION_USE_SIGNER'] = False
     app.config['SESSION_PERMANENT'] = True
     Session(app)
 
