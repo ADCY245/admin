@@ -10,6 +10,7 @@ from .models import User
 from .utils.logging import setup_logging
 from .template_loader import setup_template_loader
 from flask_session import Session
+from flask_session.sessions import MongoDBSessionInterface
 
 def create_app(config_class=Config):
     """
@@ -121,9 +122,21 @@ def create_app(config_class=Config):
             app.config['SESSION_MONGODB'] = client
             app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
             app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
-            app.config['SESSION_USE_SIGNER'] = False
+            app.config['SESSION_USE_SIGNER'] = True
             app.config['SESSION_PERMANENT'] = True
-            Session(app)
+            app.config['SESSION_COOKIE_SECURE'] = True
+            app.config['SESSION_COOKIE_HTTPONLY'] = True
+            app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+            app.config['SESSION_KEY_PREFIX'] = 'session:'
+            
+            # Initialize session
+            session_interface = MongoDBSessionInterface(
+                client=client,
+                db=app.config['SESSION_MONGODB_DB'],
+                collection=app.config['SESSION_MONGODB_COLLECT'],
+                key_prefix=app.config['SESSION_KEY_PREFIX']
+            )
+            app.session_interface = session_interface
             
             # Initialize mongo_users helper
             try:
