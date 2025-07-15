@@ -12,12 +12,11 @@ bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
+    # Handle already authenticated users
     if current_user.is_authenticated:
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True,
-                'redirect': url_for('main.index')
-            })
+        next_page = request.args.get('next')
+        if next_page:
+            return redirect(next_page)
         return redirect(url_for('main.index'))
     
     form = LoginForm()
@@ -26,7 +25,7 @@ def login():
         identifier = form.email.data  # This could be email or username
         user = User.objects.filter(email=identifier).first() or \
                User.objects.filter(username=identifier).first()
-               
+        
         if user and user.check_password(form.password.data):
             if not user.is_verified:
                 if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -43,10 +42,11 @@ def login():
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': True,
-                    'redirect': url_for('auth.welcome', next=next_page) if not next_page else next_page
+                    'redirect': next_page or url_for('auth.welcome')
                 })
                 
-            return redirect(url_for('auth.welcome', next=next_page))
+            # For regular requests, redirect directly to the next page or welcome page
+            return redirect(next_page or url_for('auth.welcome'))
         
         error_msg = 'Invalid email or password'
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -184,6 +184,13 @@ def reset_password(token):
 @bp.route('/welcome')
 @login_required
 def welcome():
+    # Get the next page from URL parameter
+    next_page = request.args.get('next')
+    
+    # If there's a next page specified, redirect directly to it
+    if next_page:
+        return redirect(next_page)
+    
     # Determine the appropriate dashboard URL based on user role
     if current_user.role == 'admin':
         dashboard_url = url_for('dashboard.admin_dashboard')
