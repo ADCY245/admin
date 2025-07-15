@@ -47,14 +47,19 @@ def login():
             login_user(user, remember=True, force=True)
             next_page = request.args.get('next')
             
+            # If there's a next page, redirect to it
+            if next_page:
+                return redirect(next_page)
+            
+            # If it's an AJAX request, return JSON with redirect URL
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': True,
-                    'redirect': next_page or url_for('auth.welcome')
+                    'redirect': url_for('dashboard.index')
                 })
-                
-            # For regular requests, redirect directly to the next page or welcome page
-            return redirect(next_page or url_for('auth.welcome'))
+            
+            # For regular requests, redirect to dashboard index
+            return redirect(url_for('dashboard.index'))
         
         error_msg = 'Invalid email or password'
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -223,10 +228,8 @@ def welcome():
             'redirect': dashboard_url
         })
     
-    # For regular requests, render the welcome template
-    return render_template('auth/welcome.html', 
-                         user=user,
-                         redirect_url=dashboard_url)
+    # For regular requests, redirect directly to dashboard
+    return redirect(dashboard_url)
 
 @bp.route('/logout')
 @login_required
