@@ -222,7 +222,7 @@ def welcome():
     
     # For regular requests, render the welcome template
     return render_template('auth/welcome.html', 
-                         current_user=current_user,
+                         user=user,
                          redirect_url=dashboard_url)
 
 @bp.route('/logout')
