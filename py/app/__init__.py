@@ -94,41 +94,43 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
-    # Initialize MongoDB connection
-    try:
-        # Close any existing connections to avoid issues
-        disconnect()
-        
-        # Use MONGO_URI for connection
-        mongo_uri = app.config.get('MONGO_URI')
-        if not mongo_uri:
-            raise ValueError("MONGO_URI environment variable is not set")
-            
-        # Connect using URI with MongoEngine
-        connect(host=mongo_uri)
-        
-        # Configure Flask-Session with MongoDB
-        client = MongoClient(app.config.get('MONGO_URI'))
-        app.config['SESSION_TYPE'] = 'mongodb'
-        app.config['SESSION_MONGODB'] = client
-        app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
-        app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
-        app.config['SESSION_USE_SIGNER'] = False
-        app.config['SESSION_PERMANENT'] = True
-        Session(app)
-        
-        # Initialize mongo_users helper
+    # Initialize MongoDB connection in worker process
+    @app.before_first_request
+    def init_mongodb():
         try:
-            from mongo_users import init_mongo_connection
-            init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
+            # Close any existing connections to avoid issues
+            disconnect()
+            
+            # Use MONGO_URI for connection
+            mongo_uri = app.config.get('MONGO_URI')
+            if not mongo_uri:
+                raise ValueError("MONGO_URI environment variable is not set")
+                
+            # Connect using URI with MongoEngine
+            connect(host=mongo_uri)
+            
+            # Configure Flask-Session with MongoDB
+            client = MongoClient(app.config.get('MONGO_URI'))
+            app.config['SESSION_TYPE'] = 'mongodb'
+            app.config['SESSION_MONGODB'] = client
+            app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
+            app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
+            app.config['SESSION_USE_SIGNER'] = False
+            app.config['SESSION_PERMANENT'] = True
+            Session(app)
+            
+            # Initialize mongo_users helper
+            try:
+                from mongo_users import init_mongo_connection
+                init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
+            except Exception as e:
+                app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
+            
+            app.logger.info("MongoDB connection initialized successfully")
+            
         except Exception as e:
-            app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
-        
-        app.logger.info("MongoDB connection initialized successfully")
-        
-    except Exception as e:
-        app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
-        raise
+            app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
+            raise
 
     # Register Jinja filters
     @app.template_filter('datetimeformat')
