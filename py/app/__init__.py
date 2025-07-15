@@ -95,55 +95,66 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
-    # Track if MongoDB has been initialized
-    app.config['MONGODB_INITIALIZED'] = False
-    
-    # Initialize MongoDB connection in worker process
-    @app.before_request
-    def init_mongodb():
-        if app.config['MONGODB_INITIALIZED']:
-            return
+    # Initialize MongoDB connection immediately
+    try:
+        # Close any existing connections to avoid issues
+        disconnect()
+        
+        # Use MONGO_URI for connection
+        mongo_uri = app.config.get('MONGO_URI')
+        if not mongo_uri:
+            raise ValueError("MONGO_URI environment variable is not set")
             
-        try:
-            # Close any existing connections to avoid issues
-            disconnect()
-            
-            # Use MONGO_URI for connection
-            mongo_uri = app.config.get('MONGO_URI')
-            if not mongo_uri:
-                raise ValueError("MONGO_URI environment variable is not set")
-                
-            # Connect using URI with MongoEngine
-            connect(host=mongo_uri)
-            
-            # Configure secure cookie-based sessions
-            app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-            app.config['SESSION_TYPE'] = 'filesystem'
-            app.config['SESSION_FILE_DIR'] = os.path.join(app.instance_path, 'sessions')
-            app.config['SESSION_PERMANENT'] = True
-            app.config['SESSION_USE_SIGNER'] = True
-            app.config['SESSION_COOKIE_SECURE'] = True
-            app.config['SESSION_COOKIE_HTTPONLY'] = True
-            app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-            
-            # Initialize session
-            Session(app)
-            
-            # Initialize mongo_users helper
+        # Connect using URI with MongoEngine
+        connect(host=mongo_uri)
+        
+        # Configure secure cookie-based sessions
+        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+        app.config['SESSION_TYPE'] = 'filesystem'
+        app.config['SESSION_FILE_DIR'] = os.path.join(app.instance_path, 'sessions')
+        app.config['SESSION_PERMANENT'] = True
+        app.config['SESSION_USE_SIGNER'] = True
+        app.config['SESSION_COOKIE_SECURE'] = True
+        app.config['SESSION_COOKIE_HTTPONLY'] = True
+        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+        app.config['SESSION_COOKIE_NAME'] = 'admin_session'
+        app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+        
+        # Initialize session
+        Session(app)
+        
+        # Initialize Flask-Login
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        
+        @login_manager.user_loader
+        def load_user(user_id):
             try:
-                from mongo_users import init_mongo_connection
-                client = MongoClient(app.config.get('MONGO_URI'))
-                init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
+                user = User.objects.get(id=user_id)
+                # Store the user's role in the session for template loading
+                if hasattr(user, 'role'):
+                    session['user_role'] = user.role
+                return user
+            except DoesNotExist:
+                return None
             except Exception as e:
-                app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
-            
-            app.logger.info("MongoDB connection initialized successfully")
-            app.config['MONGODB_INITIALIZED'] = True
-            
+                app.logger.error(f"Error loading user: {str(e)}")
+                return None
+        
+        # Initialize mongo_users helper
+        try:
+            from mongo_users import init_mongo_connection
+            client = MongoClient(app.config.get('MONGO_URI'))
+            init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
         except Exception as e:
-            app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            raise
-
+            app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
+        
+        app.logger.info("MongoDB connection initialized successfully")
+        app.config['MONGODB_INITIALIZED'] = True
+    except Exception as e:
+        app.logger.error(f"Failed to initialize MongoDB: {str(e)}")
+        raise
+            
     # Register Jinja filters
     @app.template_filter('datetimeformat')
     def datetimeformat(value, fmt='%b %d, %Y'):
