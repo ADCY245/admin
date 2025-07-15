@@ -131,9 +131,11 @@ def create_app(config_class=Config):
             app.logger.error(f"MongoDB connection failed: {str(e)}")
             flash('Database connection error. Please try again later.', 'error')
             return redirect(url_for('auth.login'))
-        
+
+    @login_manager.user_loader
+    def load_user(user_id):
         try:
-            user = User.objects.get(id=session.get('user_id'))
+            user = User.objects.get(id=user_id)
             # Store the user's role in the session for template loading
             if hasattr(user, 'role'):
                 session['user_role'] = user.role
@@ -143,20 +145,18 @@ def create_app(config_class=Config):
         except Exception as e:
             app.logger.error(f"Error loading user: {str(e)}")
             return None
-        
-        # Initialize mongo_users helper
-        try:
-            from mongo_users import init_mongo_connection
-            client = MongoClient(app.config.get('MONGO_URI'))
-            init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
-        except Exception as e:
-            app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
-        
+
+    # Initialize mongo_users helper
+    try:
+        from mongo_users import init_mongo_connection
+        client = MongoClient(app.config.get('MONGO_URI'))
+        init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
         app.logger.info("MongoDB connection initialized successfully")
         app.config['MONGODB_INITIALIZED'] = True
     except Exception as e:
+        app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
         app.logger.error(f"Failed to initialize MongoDB: {str(e)}")
-        raise
+        
             
     # Register Jinja filters
     @app.template_filter('datetimeformat')
