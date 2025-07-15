@@ -35,16 +35,17 @@ def index():
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
     
-    # Ensure role is set in session
-    if hasattr(current_user, 'role'):
-        session['user_role'] = current_user.role
-    else:
-        session['user_role'] = 'user'
+    # Get user role from session or current_user
+    user_role = session.get('user_role') or getattr(current_user, 'role', 'user')
+    
+    # Ensure role is valid
+    if user_role not in ['admin', 'dealer', 'user']:
+        user_role = 'user'
     
     # Redirect to the appropriate dashboard based on user role
-    if current_user.role == 'admin':
+    if user_role == 'admin':
         return redirect(url_for('dashboard.admin_dashboard'))
-    elif current_user.role == 'dealer':
+    elif user_role == 'dealer':
         return redirect(url_for('dashboard.dealer_dashboard'))
     else:
         # Default to user dashboard for any other roles
