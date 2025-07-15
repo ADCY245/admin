@@ -92,9 +92,6 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
-    # Initialize Flask-Session
-    Session(app)
-    
     # Initialize MongoDB connection
     try:
         # Close any existing connections to avoid issues
@@ -105,15 +102,21 @@ def create_app(config_class=Config):
         if not mongo_uri:
             raise ValueError("MONGO_URI environment variable is not set")
             
-        # Connect using URI
+        # Connect using URI with MongoEngine
         connect(host=mongo_uri)
+
+        # Create PyMongo client for Flask-Session
+        from pymongo import MongoClient
+        app.config['SESSION_MONGODB'] = MongoClient(mongo_uri)
         
-        # Store the client for session handling
-        app.config['MONGODB_CLIENT'] = connect(host=mongo_uri)
+        # Initialize Flask-Session AFTER setting SESSION_MONGODB
+        Session(app)
         
     except Exception as e:
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
         raise
+    
+    Session(app)
     
     # Setup CORS
     CORS(app, resources={
