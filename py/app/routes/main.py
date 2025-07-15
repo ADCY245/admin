@@ -11,7 +11,12 @@ bp = Blueprint('main', __name__)
 
 @bp.route('/')
 def index():
-    """Redirect to login page."""
+    """Home route.
+    - If user is not logged in -> redirect to login page
+    - If user is logged in -> send them to the welcome screen which takes them to the right dashboard
+    """
+    if current_user.is_authenticated:
+        return redirect(url_for('auth.welcome'))
     return redirect(url_for('auth.login'))
 
 def get_role_template(role, template_name):
