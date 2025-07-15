@@ -45,11 +45,6 @@ def index():
     # Get the target dashboard URL
     target_url = url_for(f'dashboard.{user_role}_dashboard')
     
-    # If there's a next URL parameter, use it
-    next_url = request.args.get('next')
-    if next_url:
-        return redirect(next_url)
-    
     # If it's an AJAX request, return JSON with redirect URL
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({

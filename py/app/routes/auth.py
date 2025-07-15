@@ -45,13 +45,8 @@ def login():
             session['user_role'] = user.role
             
             login_user(user, remember=True, force=True)
-            next_page = request.args.get('next')
             
-            # If there's a next page, redirect to it
-            if next_page:
-                return redirect(next_page)
-            
-            # If it's an AJAX request, return JSON with redirect URL
+            # For AJAX requests, return JSON response
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': True,
