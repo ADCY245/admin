@@ -2,7 +2,7 @@ import os
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from flask_login import LoginManager, current_user
-from flask_session import Session
+
 from mongoengine import connect, disconnect
 from .config import Config
 from .models import User
@@ -105,12 +105,7 @@ def create_app(config_class=Config):
         # Connect using URI with MongoEngine
         connect(host=mongo_uri)
 
-        # Create PyMongo client for Flask-Session
-        from pymongo import MongoClient
-        app.config['SESSION_MONGODB'] = MongoClient(mongo_uri)
         
-        # Initialize Flask-Session AFTER setting SESSION_MONGODB
-        Session(app)
         
     except Exception as e:
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
