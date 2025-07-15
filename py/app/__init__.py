@@ -123,7 +123,13 @@ def create_app(config_class=Config):
         raise
     
     # Initialize session with MongoDB backend
-    app.session_interface = MongoDBSessionInterface(app)
+    from flask_session import MongoDBSessionInterface
+    app.session_interface = MongoDBSessionInterface(
+        app,
+        db='moneda_db',  # Database name
+        collection='sessions',  # Collection name for sessions
+        key_prefix='session:'  # Prefix for session keys
+    )
     
     # Initialize login manager
     login_manager = LoginManager()
