@@ -94,9 +94,15 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
+    # Track if MongoDB has been initialized
+    app.config['MONGODB_INITIALIZED'] = False
+    
     # Initialize MongoDB connection in worker process
-    @app.before_first_request
+    @app.before_request
     def init_mongodb():
+        if app.config['MONGODB_INITIALIZED']:
+            return
+            
         try:
             # Close any existing connections to avoid issues
             disconnect()
@@ -127,6 +133,7 @@ def create_app(config_class=Config):
                 app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
             
             app.logger.info("MongoDB connection initialized successfully")
+            app.config['MONGODB_INITIALIZED'] = True
             
         except Exception as e:
             app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
