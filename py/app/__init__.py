@@ -132,6 +132,7 @@ def create_app(config_class=Config):
             # Initialize mongo_users helper
             try:
                 from mongo_users import init_mongo_connection
+                client = MongoClient(app.config.get('MONGO_URI'))
                 init_mongo_connection(client, app.config.get('MONGODB_DB', 'moneda_db'))
             except Exception as e:
                 app.logger.error(f"Failed to initialize mongo_users: {str(e)}")
