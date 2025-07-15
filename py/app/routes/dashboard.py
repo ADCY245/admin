@@ -62,37 +62,38 @@ bp.add_url_rule('/dashboard', 'dashboard', index)
 @login_required
 def admin_dashboard():
     """Admin dashboard view."""
-    # Ensure user is admin
-    if current_user.role != 'admin':
-        flash('Access denied. Admin privileges required.', 'danger')
+    try:
+        # Ensure user is admin
+        if current_user.role != 'admin':
+            flash('Access denied. Admin privileges required.', 'danger')
+            return redirect(url_for('dashboard.index'))
+        
+        # Set role in session
+        session['user_role'] = 'admin'
+        
+        # Add admin-specific data
+        stats = {
+            'total_users': 0,  # Replace with actual data
+            'total_products': 0,  # Replace with actual data
+            'total_orders': 0,  # Replace with actual data
+            'revenue': 0,  # Replace with actual data
+            'pending_orders': 0,
+            'completed_orders': 0
+        }
+        
+        recent_orders = []  # Replace with actual data
+        
+        return render_role_template('dashboard.html',
+                                 title='Admin Dashboard',
+                                 stats=stats,
+                                 recent_orders=recent_orders,
+                                 role='admin',
+                                 now=datetime.utcnow())
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in admin dashboard: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('dashboard.index'))
-    
-    # Ensure the role is set correctly in the session first
-    session['user_role'] = 'admin'
-    
-    # Verify user has admin role
-    if current_user.role != 'admin':
-        flash('You do not have permission to access this page.', 'error')
-        return redirect(url_for('dashboard.index'))
-    
-    # Add any admin-specific data here
-    stats = {
-        'total_users': 0,  # Replace with actual data
-        'total_products': 0,  # Replace with actual data
-        'total_orders': 0,  # Replace with actual data
-        'revenue': 0,  # Replace with actual data
-        'pending_orders': 0,
-        'completed_orders': 0
-    }
-    
-    recent_orders = []  # Replace with actual data
-    
-    return render_role_template('dashboard.html',
-                             title='Admin Dashboard',
-                             stats=stats,
-                             recent_orders=recent_orders,
-                             role='admin',
-                             now=datetime.utcnow())
 
 @bp.route('/dealer')
 @login_required
@@ -170,25 +171,34 @@ def user_dashboard():
 @login_required
 def test_role_template():
     """Test route to verify role-based template loading."""
-    # Get the current role from the user or default to 'user'
-    role = getattr(current_user, 'role', 'user')
-    
-    # Set the role in the session for template loading
-    session['user_role'] = role
-    
-    # Prepare test data
-    test_data = {
-        'title': f'Test Template for {role.capitalize()}',
-        'message': f'This is a test template for the {role} role.',
-        'user': {
-            'name': current_user.username,
-            'email': current_user.email,
-            'role': role,
-            'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A'
-        },
-        'now': datetime.utcnow(),
-        'role': role
-    }
+    try:
+        # Get the current role from the user or default to 'user'
+        role = getattr(current_user, 'role', 'user')
+        
+        # Set the role in the session for template loading
+        session['user_role'] = role
+        
+        # Prepare test data
+        test_data = {
+            'title': f'Test Template for {role.capitalize()}',
+            'message': f'This is a test template for the {role} role.',
+            'user': {
+                'name': current_user.username,
+                'email': current_user.email,
+                'role': role,
+                'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A'
+            },
+            'now': datetime.utcnow(),
+            'role': role
+        }
+        
+        # Render template with test data
+        return render_role_template('test_template.html', **test_data)
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in test role template: {str(e)}")
+        flash('An error occurred in the test template.', 'error')
+        return redirect(url_for('dashboard.index'))
     
 # API routes for role-specific dashboard data
 
@@ -196,8 +206,37 @@ def test_role_template():
 @login_required
 def api_user_dashboard():
     """Return JSON data for user dashboard JS."""
-    if current_user.role != 'user':
-        abort(403)
+    try:
+        if current_user.role != 'user':
+            abort(403)
+            
+        # Get user-specific data
+        stats = {
+            'total_orders': 0,  # Replace with actual data
+            'pending_orders': 0,  # Replace with actual data
+            'completed_orders': 0,  # Replace with actual data
+            'total_spent': 0  # Replace with actual data
+        }
+        
+        recent_orders = []  # Replace with actual data
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'recent_orders': recent_orders,
+            'user': {
+                'name': current_user.username,
+                'email': current_user.email,
+                'role': current_user.role
+            }
+        })
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in user dashboard API: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'An error occurred while fetching dashboard data'
+        }), 500
     
     # Placeholder data – replace with real queries
     user_obj = {

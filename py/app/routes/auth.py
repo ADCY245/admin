@@ -192,11 +192,33 @@ def reset_password(token):
 @bp.route('/welcome')
 @login_required
 def welcome():
-    # Get the current user's ID from Flask-Login
-    user_id = str(current_user.get_id())
-    
-    # Fetch user data from MongoDB
-    user = find_user_by_id(user_id)
+    try:
+        # Get the current user's ID from Flask-Login
+        user_id = str(current_user.get_id())
+        
+        # Fetch user data from MongoDB
+        user = find_user_by_id(user_id)
+        if not user:
+            flash('User not found in database', 'error')
+            return redirect(url_for('auth.logout'))
+        
+        # Ensure role consistency between user and session
+        if user['role'] != session.get('user_role'):
+            session['user_role'] = user['role']
+        
+        # Redirect to appropriate dashboard
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': True,
+                'redirect': url_for(f'dashboard.{user["role"]}_dashboard')
+            })
+        
+        return redirect(url_for(f'dashboard.{user["role"]}_dashboard'))
+        
+    except Exception as e:
+        current_app.logger.error(f"Error in welcome route: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
+        return redirect(url_for('auth.logout'))
     
     if not user:
         flash('User not found in database', 'error')
