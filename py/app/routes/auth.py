@@ -40,6 +40,10 @@ def login():
             # Ensure we have the username and role before logging in
             user.username = user.username or user.email.split('@')[0]
             user.role = user.role or 'user'
+            
+            # Set role in session
+            session['user_role'] = user.role
+            
             login_user(user, remember=True, force=True)
             next_page = request.args.get('next')
             
@@ -198,6 +202,10 @@ def welcome():
         flash('User not found in database', 'error')
         return redirect(url_for('auth.logout'))
     
+    # Ensure role is consistent between user and session
+    if user['role'] != session.get('user_role'):
+        session['user_role'] = user['role']
+    
     # Get the next page from URL parameter
     next_page = request.args.get('next')
     
@@ -206,12 +214,7 @@ def welcome():
         return redirect(next_page)
     
     # Determine the appropriate dashboard URL based on user role
-    if user['role'] == 'admin':
-        dashboard_url = url_for('dashboard.admin_dashboard')
-    elif user['role'] == 'dealer':
-        dashboard_url = url_for('dashboard.dealer_dashboard')
-    else:
-        dashboard_url = url_for('dashboard.user_dashboard')
+    dashboard_url = url_for(f'dashboard.{user["role"]}_dashboard')
     
     # If it's an AJAX request, return JSON with redirect URL
     if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
