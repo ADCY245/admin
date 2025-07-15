@@ -19,7 +19,8 @@ class User(Document, UserMixin):
             'username',
             'reset_token',
             {'fields': ['reset_token_expiry'], 'expireAfterSeconds': 0}
-        ]
+        ],
+        'strict': False
     }
     
     id = StringField(primary_key=True, default=lambda: str(uuid.uuid4()))
