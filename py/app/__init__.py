@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify, request, session
 from flask_cors import CORS
 from flask_login import LoginManager, current_user
+from flask_session import Session
 from mongoengine import connect, disconnect
 from .config import Config
 from .models import User
@@ -90,6 +91,9 @@ def create_app(config_class=Config):
     app.logger.info(f"Template directory set to: {template_dir}")
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
+    
+    # Initialize Flask-Session
+    Session(app)
     
     # Initialize MongoDB connection
     try:

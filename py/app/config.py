@@ -43,9 +43,16 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max upload size
     
     # Session configuration
+    SESSION_TYPE = 'mongodb'
+    SESSION_PERMANENT = True
     PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_USE_SIGNER = True
+    SESSION_KEY_PREFIX = 'session:'
+    SESSION_MONGODB = os.getenv('MONGODB_HOST', 'localhost')
+    SESSION_MONGODB_DB = os.getenv('MONGODB_DB', 'moneda_db')
+    SESSION_MONGODB_COLLECTION = 'sessions'
     
     # Logging
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
