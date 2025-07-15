@@ -4,6 +4,7 @@ from flask_cors import CORS
 from flask_login import LoginManager, current_user
 
 from mongoengine import connect, disconnect
+from pymongo import MongoClient
 from .config import Config
 from .models import User
 from .utils.logging import setup_logging
@@ -114,7 +115,7 @@ def create_app(config_class=Config):
     
         # ------------------ Flask-Session (MongoDB) ------------------
     app.config['SESSION_TYPE'] = 'mongodb'
-    app.config['SESSION_MONGODB'] = mongo_client
+    app.config['SESSION_MONGODB'] = MongoClient(app.config.get('MONGO_URI'))
     app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
     app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
     app.config['SESSION_PERMANENT'] = True
