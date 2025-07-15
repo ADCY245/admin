@@ -96,51 +96,53 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
-    # Initialize MongoDB connection immediately
-    try:
-        # Close any existing connections to avoid issues
-        disconnect()
+    # Configure MongoDB connection
+    app.config['MONGO_URI'] = os.environ.get('MONGO_URI')
+    if not app.config['MONGO_URI']:
+        raise ValueError("MONGO_URI environment variable is not set")
+    
+    # Configure session settings
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
+    app.config['SESSION_TYPE'] = 'filesystem'
+    app.config['SESSION_FILE_DIR'] = os.path.join(app.instance_path, 'sessions')
+    app.config['SESSION_PERMANENT'] = True
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_NAME'] = 'admin_session'
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
+    
+    # Initialize session
+    Session(app)
+    
+    # Initialize login manager
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
+    
+    # Initialize MongoDB connection in before_request
+    @app.before_request
+    def init_mongo():
+        try:
+            disconnect()
+            connect(host=app.config['MONGO_URI'])
+        except Exception as e:
+            app.logger.error(f"MongoDB connection failed: {str(e)}")
+            flash('Database connection error. Please try again later.', 'error')
+            return redirect(url_for('auth.login'))
         
-        # Use MONGO_URI for connection
-        mongo_uri = app.config.get('MONGO_URI')
-        if not mongo_uri:
-            raise ValueError("MONGO_URI environment variable is not set")
-            
-        # Connect using URI with MongoEngine
-        connect(host=mongo_uri)
-        
-        # Configure secure cookie-based sessions
-        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-        app.config['SESSION_TYPE'] = 'filesystem'
-        app.config['SESSION_FILE_DIR'] = os.path.join(app.instance_path, 'sessions')
-        app.config['SESSION_PERMANENT'] = True
-        app.config['SESSION_USE_SIGNER'] = True
-        app.config['SESSION_COOKIE_SECURE'] = True
-        app.config['SESSION_COOKIE_HTTPONLY'] = True
-        app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-        app.config['SESSION_COOKIE_NAME'] = 'admin_session'
-        app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
-        
-        # Initialize session
-        Session(app)
-        
-        # Initialize Flask-Login
-        login_manager = LoginManager()
-        login_manager.init_app(app)
-        
-        @login_manager.user_loader
-        def load_user(user_id):
-            try:
-                user = User.objects.get(id=user_id)
-                # Store the user's role in the session for template loading
-                if hasattr(user, 'role'):
-                    session['user_role'] = user.role
-                return user
-            except DoesNotExist:
-                return None
-            except Exception as e:
-                app.logger.error(f"Error loading user: {str(e)}")
-                return None
+        try:
+            user = User.objects.get(id=session.get('user_id'))
+            # Store the user's role in the session for template loading
+            if hasattr(user, 'role'):
+                session['user_role'] = user.role
+            return user
+        except User.DoesNotExist:
+            return None
+        except Exception as e:
+            app.logger.error(f"Error loading user: {str(e)}")
+            return None
         
         # Initialize mongo_users helper
         try:

@@ -13,60 +13,66 @@ bp = Blueprint('auth', __name__)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # Handle already authenticated users
-    if current_user.is_authenticated:
-        flash('You are already logged in.', 'info')
-        return redirect(url_for('dashboard.index'))
-    
-    form = LoginForm()
-    if form.validate_on_submit():
-        # Try to get user by email or username
-        identifier = form.email.data  # This could be email or username
-        user = User.objects.filter(email=identifier).first() or \
-               User.objects.filter(username=identifier).first()
+    try:
+        # Handle already authenticated users
+        if current_user.is_authenticated:
+            flash('You are already logged in.', 'info')
+            return redirect(url_for('dashboard.index'))
         
-        if not user:
-            flash('User not found.', 'danger')
-            return render_template('auth/login.html', form=form)
+        form = LoginForm()
+        if form.validate_on_submit():
+            # Try to get user by email or username
+            identifier = form.email.data
+            user = User.objects.filter(email=identifier).first() or \
+                   User.objects.filter(username=identifier).first()
+            
+            if not user:
+                flash('User not found.', 'danger')
+                return render_template('auth/login.html', form=form)
+            
+            if not user.check_password(form.password.data):
+                flash('Invalid password.', 'danger')
+                return render_template('auth/login.html', form=form)
+            
+            if not user.is_verified:
+                if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({
+                        'success': False,
+                        'message': 'Please verify your email before logging in.'
+                    }), 403
+                flash('Please verify your email before logging in.', 'warning')
+                return render_template('auth/login.html', form=form)
+            
+            # Ensure we have the username and role before logging in
+            user.username = user.username or user.email.split('@')[0]
+            user.role = user.role or 'user'
+            
+            # Set role in session
+            session['user_role'] = user.role
+            
+            login_user(user, remember=True, force=True)
+            
+            # Always redirect to the appropriate dashboard based on role
+            if user.role == 'admin':
+                return redirect(url_for('dashboard.admin_dashboard'))
+            elif user.role == 'dealer':
+                return redirect(url_for('dashboard.dealer_dashboard'))
+            else:
+                return redirect(url_for('dashboard.user_dashboard'))
         
-        if not user.check_password(form.password.data):
-            flash('Invalid password.', 'danger')
-            return render_template('auth/login.html', form=form)
+        # Handle AJAX GET requests
+        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                'success': False,
+                'message': 'Please provide login credentials'
+            }), 400
         
-        if not user.is_verified:
-            if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({
-                    'success': False,
-                    'message': 'Please verify your email before logging in.'
-                }), 403
-            flash('Please verify your email before logging in.', 'warning')
-            return render_template('auth/login.html', form=form)
+        return render_template('auth/login.html', form=form)
         
-        # Ensure we have the username and role before logging in
-        user.username = user.username or user.email.split('@')[0]
-        user.role = user.role or 'user'
-        
-        # Set role in session
-        session['user_role'] = user.role
-        
-        login_user(user, remember=True, force=True)
-        
-        # Always redirect to the appropriate dashboard based on role
-        if user.role == 'admin':
-            return redirect(url_for('dashboard.admin_dashboard'))
-        elif user.role == 'dealer':
-            return redirect(url_for('dashboard.dealer_dashboard'))
-        else:
-            return redirect(url_for('dashboard.user_dashboard'))
-    
-    # Handle AJAX GET requests
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            'success': False,
-            'message': 'Please provide login credentials'
-        }), 400
-    
-    return render_template('auth/login.html', form=form)
+    except Exception as e:
+        current_app.logger.error(f"Error in login: {str(e)}")
+        flash('An error occurred. Please try again.', 'error')
+        return render_template('auth/login.html', form=form)
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
