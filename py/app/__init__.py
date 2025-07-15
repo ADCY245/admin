@@ -96,15 +96,20 @@ def create_app(config_class=Config):
         # Close any existing connections to avoid issues
         disconnect()
         
-        # Connect to MongoDB using the URI from config
-        connect(
-            db=app.config['MONGODB_DB'],
-            host=app.config['MONGODB_HOST'],
-            port=int(app.config.get('MONGODB_PORT', 27017)),
-            username=app.config.get('MONGODB_USERNAME'),
-            password=app.config.get('MONGODB_PASSWORD'),
-            authentication_source=app.config.get('MONGODB_AUTH_SOURCE', 'admin')
-        )
+        # Prefer full connection URI if provided (e.g. for cloud MongoDB services)
+        mongo_uri = app.config.get('MONGO_URI')
+        if mongo_uri and mongo_uri.startswith('mongodb'):
+            connect(host=mongo_uri)
+        else:
+            # Fallback to individual connection parameters (local/dev)
+            connect(
+                db=app.config['MONGODB_DB'],
+                host=app.config['MONGODB_HOST'],
+                port=int(app.config.get('MONGODB_PORT', 27017)),
+                username=app.config.get('MONGODB_USERNAME') or None,
+                password=app.config.get('MONGODB_PASSWORD') or None,
+                authentication_source=app.config.get('MONGODB_AUTH_SOURCE', 'admin')
+            )
     except Exception as e:
         app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
         raise
