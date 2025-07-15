@@ -1,6 +1,7 @@
 import os
 from jinja2 import FileSystemLoader, ChoiceLoader
 from flask import current_app, session, request
+from flask_login import current_user
 
 def setup_template_loader(app):
     """Set up the template loader to handle role-based template loading."""
