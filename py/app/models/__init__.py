@@ -24,6 +24,22 @@ class User(Document, UserMixin):
     }
     
     id = StringField(primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    def get_id(self):
+        """Return the user ID as a string."""
+        return str(self.id)
+    
+    def is_authenticated(self):
+        """Return True if the user is authenticated."""
+        return True
+    
+    def is_active(self):
+        """Return True if the user is active."""
+        return True
+    
+    def is_anonymous(self):
+        """Return False since we don't support anonymous users."""
+        return False
     email = EmailField(required=True, unique=True)
     username = StringField(required=True, unique=True)
     password_hash = StringField(required=True)

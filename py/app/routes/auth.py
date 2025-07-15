@@ -36,7 +36,10 @@ def login():
                 flash('Please verify your email before logging in.', 'warning')
                 return redirect(url_for('auth.login'))
             
-            login_user(user, remember=True)
+            # Ensure we have the username and role before logging in
+            user.username = user.username or user.email.split('@')[0]
+            user.role = user.role or 'user'
+            login_user(user, remember=True, force=True)
             next_page = request.args.get('next')
             
             if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
