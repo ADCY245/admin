@@ -94,51 +94,33 @@ def create_app(config_class=Config):
     app.logger.info(f"Static files directory set to: {static_dir}")
     app.config.from_object(config_class)
     
-    # Initialize MongoDB connection after fork
-    def init_mongodb():
-        try:
-            # Close any existing connections to avoid issues
-            disconnect()
-            
-            # Use MONGO_URI for connection
-            mongo_uri = app.config.get('MONGO_URI')
-            if not mongo_uri:
-                raise ValueError("MONGO_URI environment variable is not set")
-                
-            # Connect using URI with MongoEngine
-            connect(host=mongo_uri)
-            
-            # Configure Flask-Session with MongoDB
-            app.config['SESSION_TYPE'] = 'mongodb'
-            app.config['SESSION_MONGODB'] = MongoClient(app.config.get('MONGO_URI'))
-            app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
-            app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
-            app.config['SESSION_USE_SIGNER'] = False
-            app.config['SESSION_PERMANENT'] = True
-            Session(app)
-            
-            app.logger.info("MongoDB connection initialized successfully")
-            
-        except Exception as e:
-            app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
-            raise
-
     # Initialize MongoDB connection
-    init_mongodb()
-    
-    # Configure Gunicorn to initialize MongoDB after fork
-    if 'gunicorn' in os.environ.get('SERVER_SOFTWARE', ''):
-        from gunicorn.app.base import Application
+    try:
+        # Close any existing connections to avoid issues
+        disconnect()
         
-        class FlaskApplication(Application):
-            def init(self, parser, opts, args):
-                return {
-                    'bind': f"0.0.0.0:{app.config.get('PORT', 5000)}",
-                    'workers': 2,
-                    'post_fork': init_mongodb
-                }
+        # Use MONGO_URI for connection
+        mongo_uri = app.config.get('MONGO_URI')
+        if not mongo_uri:
+            raise ValueError("MONGO_URI environment variable is not set")
+            
+        # Connect using URI with MongoEngine
+        connect(host=mongo_uri)
         
-        FlaskApplication().run()
+        # Configure Flask-Session with MongoDB
+        app.config['SESSION_TYPE'] = 'mongodb'
+        app.config['SESSION_MONGODB'] = MongoClient(app.config.get('MONGO_URI'))
+        app.config['SESSION_MONGODB_DB'] = app.config.get('DB_NAME', 'moneda_db')
+        app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
+        app.config['SESSION_USE_SIGNER'] = False
+        app.config['SESSION_PERMANENT'] = True
+        Session(app)
+        
+        app.logger.info("MongoDB connection initialized successfully")
+        
+    except Exception as e:
+        app.logger.error(f"Failed to connect to MongoDB: {str(e)}")
+        raise
 
     # Register Jinja filters
     @app.template_filter('datetimeformat')
