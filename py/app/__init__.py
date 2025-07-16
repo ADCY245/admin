@@ -131,8 +131,8 @@ def create_app(config_class=Config):
     
     # Initialize session interface with MongoDB client
     app.session_interface = MongoDBSessionInterface(
-        app,
-        mongo_client,
+        app=app,
+        client=mongo_client,
         db='moneda_db',  # Database name
         collection='sessions',  # Collection name for sessions
         key_prefix='session:'  # Prefix for session keys
