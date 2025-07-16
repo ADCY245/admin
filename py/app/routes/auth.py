@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, jsonify, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..models import User
@@ -54,11 +54,11 @@ def login():
             
             # Always redirect to the appropriate dashboard based on role
             if user.role == 'admin':
-                return redirect(url_for('dashboard.admin'))
+                return redirect(url_for('dashboard.admin_dashboard'))
             elif user.role == 'dealer':
-                return redirect(url_for('dashboard.dealer'))
+                return redirect(url_for('dashboard.dealer_dashboard'))
             else:
-                return redirect(url_for('dashboard.user'))
+                return redirect(url_for('dashboard.user_dashboard'))
         
         # Handle AJAX GET requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
