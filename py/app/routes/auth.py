@@ -93,22 +93,21 @@ def login():
             current_app.logger.info("Available routes: %s", 
                                  [str(rule) for rule in current_app.url_map.iter_rules()])
             
-            # Redirect based on role
+            # Redirect to welcome page first
             try:
-                if user_role == 'admin':
-                    current_app.logger.info("Redirecting to admin dashboard")
-                    return redirect(url_for('dashboard.admin_dashboard'))
-                elif user_role == 'dealer':
-                    current_app.logger.info("Redirecting to dealer dashboard")
-                    return redirect(url_for('dashboard.dealer_dashboard'))
-                else:
-                    current_app.logger.info("Redirecting to user dashboard")
-                    return redirect(url_for('dashboard.user_dashboard'))
+                current_app.logger.info(f"Redirecting to welcome page for role: {user_role}")
+                return redirect(url_for('auth.welcome'))
             except Exception as e:
-                current_app.logger.error(f"Error during redirection: {str(e)}")
+                current_app.logger.error(f"Error during welcome redirection: {str(e)}")
                 current_app.logger.exception("Full traceback:")
                 flash('An error occurred during redirection. Please try again.', 'error')
-                return redirect(url_for('auth.login'))
+                # Fallback to direct dashboard redirect if welcome page fails
+                if user_role == 'admin':
+                    return redirect(url_for('dashboard.admin_dashboard'))
+                elif user_role == 'dealer':
+                    return redirect(url_for('dashboard.dealer_dashboard'))
+                else:
+                    return redirect(url_for('dashboard.user_dashboard'))
         
         # Handle AJAX GET requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -246,57 +245,37 @@ def welcome():
         # Get the current user's ID from Flask-Login
         user_id = str(current_user.get_id())
         
-        # Fetch user data from MongoDB
-        user = find_user_by_id(user_id)
-        if not user:
-            flash('User not found in database', 'error')
-            return redirect(url_for('auth.logout'))
+        # Get user data from current_user (Flask-Login)
+        user_data = {
+            'id': current_user.id,
+            'username': current_user.username,
+            'email': current_user.email,
+            'role': current_user.role,
+            'is_verified': current_user.is_verified,
+            'created_at': current_user.created_at if hasattr(current_user, 'created_at') else datetime.utcnow()
+        }
         
-        # Ensure role consistency between user and session
-        if user['role'] != session.get('user_role'):
-            session['user_role'] = user['role']
+        # Ensure role is set in session
+        if 'user_role' not in session or session['user_role'] != current_user.role:
+            session['user_role'] = current_user.role
         
-        # Redirect to appropriate dashboard
+        # If it's an AJAX request, return JSON with redirect URL
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'success': True,
-                'redirect': url_for(f'dashboard.{user["role"]}_dashboard')
+                'redirect': url_for(f'dashboard.{current_user.role}_dashboard')
             })
         
-        return redirect(url_for(f'dashboard.{user["role"]}_dashboard'))
+        # For regular requests, render the welcome template
+        return render_template('auth/welcome.html', 
+                             user=user_data,
+                             redirect_url=url_for(f'dashboard.{current_user.role}_dashboard'))
         
     except Exception as e:
         current_app.logger.error(f"Error in welcome route: {str(e)}")
-        flash('An error occurred. Please try again.', 'error')
-        return redirect(url_for('auth.logout'))
-    
-    if not user:
-        flash('User not found in database', 'error')
-        return redirect(url_for('auth.logout'))
-    
-    # Ensure role is consistent between user and session
-    if user['role'] != session.get('user_role'):
-        session['user_role'] = user['role']
-    
-    # Get the next page from URL parameter
-    next_page = request.args.get('next')
-    
-    # If there's a next page specified, redirect directly to it
-    if next_page:
-        return redirect(next_page)
-    
-    # Determine the appropriate dashboard URL based on user role
-    dashboard_url = url_for(f'dashboard.{user["role"]}_dashboard')
-    
-    # If it's an AJAX request, return JSON with redirect URL
-    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            'success': True,
-            'redirect': dashboard_url
-        })
-    
-    # For regular requests, redirect directly to dashboard
-    return redirect(dashboard_url)
+        current_app.logger.exception("Full traceback:")
+        flash('An error occurred while loading your dashboard. Redirecting to login.', 'error')
+        return redirect(url_for('auth.login'))
 
 @bp.route('/logout')
 @login_required
