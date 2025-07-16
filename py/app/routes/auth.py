@@ -44,11 +44,25 @@ def login():
                 return render_template('auth/login.html', form=form)
             
             # Ensure we have the username and role before logging in
-            user.username = user.username or user.email.split('@')[0]
-            user.role = user.role or 'user'  # Default to 'user' if role is not set
+            update_needed = False
             
-            # Save any changes to the user object
-            user.save()
+            # Only update if username is not set
+            if not user.username:
+                user.username = user.email.split('@')[0]
+                update_needed = True
+                
+            # Ensure role is set
+            if not user.role:
+                user.role = 'user'  # Default to 'user' if role is not set
+                update_needed = True
+            
+            # Only save if updates are needed
+            if update_needed:
+                # Use update_one to avoid validation errors
+                User.objects(id=user.id).update_one(
+                    set__username=user.username,
+                    set__role=user.role
+                )
             
             # Set role in session
             session['user_role'] = user.role
