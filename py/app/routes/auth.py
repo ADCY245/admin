@@ -72,18 +72,43 @@ def login():
             
             # Debug logging
             current_app.logger.info(f"User {user.email} logged in with role: {user.role}")
+            current_app.logger.info(f"User object before redirect: {user.to_json()}")
+            
+            # Get the role after login to ensure it's set correctly
+            user_role = getattr(user, 'role', 'user').lower()
+            current_app.logger.info(f"Resolved role for redirection: {user_role}")
+            
+            # Ensure the role is in the session
+            session['user_role'] = user_role
             
             # Redirect to the appropriate dashboard based on role
             next_page = request.args.get('next')
             if next_page:
                 return redirect(next_page)
-                
-            if user.role == 'admin':
-                return redirect(url_for('dashboard.admin_dashboard'))
-            elif user.role == 'dealer':
-                return redirect(url_for('dashboard.dealer_dashboard'))
-            else:
-                return redirect(url_for('dashboard.user_dashboard'))
+            
+            # Force a session commit
+            session.modified = True
+            
+            # Debug: List all routes for verification
+            current_app.logger.info("Available routes: %s", 
+                                 [str(rule) for rule in current_app.url_map.iter_rules()])
+            
+            # Redirect based on role
+            try:
+                if user_role == 'admin':
+                    current_app.logger.info("Redirecting to admin dashboard")
+                    return redirect(url_for('dashboard.admin_dashboard'))
+                elif user_role == 'dealer':
+                    current_app.logger.info("Redirecting to dealer dashboard")
+                    return redirect(url_for('dashboard.dealer_dashboard'))
+                else:
+                    current_app.logger.info("Redirecting to user dashboard")
+                    return redirect(url_for('dashboard.user_dashboard'))
+            except Exception as e:
+                current_app.logger.error(f"Error during redirection: {str(e)}")
+                current_app.logger.exception("Full traceback:")
+                flash('An error occurred during redirection. Please try again.', 'error')
+                return redirect(url_for('auth.login'))
         
         # Handle AJAX GET requests
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':

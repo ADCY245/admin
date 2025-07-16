@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, abort, redirect, url_for, flash, c
 from flask_login import login_required, current_user
 from datetime import datetime
 import os
+from ..models import User
 from ..utils.template_utils import render_role_template, role_template
 
 bp = Blueprint('dashboard', __name__)
@@ -32,34 +33,49 @@ def index():
     Main dashboard route that redirects users to their respective role-based dashboards.
     """
     try:
+        # Get user role with fallbacks
         if not hasattr(current_user, 'role') or not current_user.role:
-            # If user has no role, assign default 'user' role
-            current_user.role = 'user'
-            current_user.save()
-            
-        user_role = current_user.role.lower()
+            user_role = 'user'
+            try:
+                # Try to update the user's role in the database
+                User.objects(id=current_user.id).update_one(set__role='user')
+                current_user.role = 'user'
+            except Exception as e:
+                current_app.logger.error(f"Error updating user role: {str(e)}")
+        else:
+            user_role = current_user.role.lower()
         
         # Debug logging
-        current_app.logger.info(f"Dashboard access attempt - User: {current_user.email}, Role: {user_role}")
+        current_app.logger.info(f"Dashboard access - User: {getattr(current_user, 'email', 'unknown')}, Role: {user_role}")
         
         # Ensure role is valid
         if user_role not in ['admin', 'dealer', 'user']:
-            current_app.logger.error(f"Invalid role '{user_role}' for user {current_user.email}")
+            current_app.logger.error(f"Invalid role '{user_role}' for user {getattr(current_user, 'email', 'unknown')}")
             flash('Invalid user role. Contact support.', 'error')
             return redirect(url_for('auth.logout'))
         
-        # Set role in session for consistency
+        # Ensure role is in session
         session['user_role'] = user_role
+        session.modified = True
         
-        # Debug: Print available routes for troubleshooting
-        current_app.logger.debug(f"Available routes: {[str(rule) for rule in current_app.url_map.iter_rules()]}")
+        # Debug: List all routes for verification
+        current_app.logger.debug("Available routes: %s", 
+                              [str(rule) for rule in current_app.url_map.iter_rules()])
         
         # Build the endpoint name for the dashboard
         dashboard_endpoint = f'dashboard.{user_role}_dashboard'
-        current_app.logger.info(f"Redirecting to dashboard: {dashboard_endpoint}")
+        current_app.logger.info(f"Attempting to redirect to: {dashboard_endpoint}")
         
-        # Redirect to the appropriate dashboard
-        return redirect(url_for(dashboard_endpoint))
+        try:
+            # Try to get the URL for the dashboard
+            dashboard_url = url_for(dashboard_endpoint)
+            current_app.logger.info(f"Redirecting to: {dashboard_url}")
+            return redirect(dashboard_url)
+        except Exception as e:
+            current_app.logger.error(f"Error generating URL for {dashboard_endpoint}: {str(e)}")
+            current_app.logger.exception("Full traceback:")
+            flash('Error accessing dashboard. Please try again.', 'error')
+            return redirect(url_for('auth.login'))
         
     except Exception as e:
         current_app.logger.error(f"Error in dashboard index: {str(e)}", exc_info=True)
