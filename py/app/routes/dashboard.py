@@ -48,11 +48,17 @@ def index():
         # Debug logging
         current_app.logger.info(f"Dashboard access - User: {getattr(current_user, 'email', 'unknown')}, Role: {user_role}")
         
-        # Ensure role is valid
+        # Ensure role is valid, default to 'user' if invalid
         if user_role not in ['admin', 'dealer', 'user']:
-            current_app.logger.error(f"Invalid role '{user_role}' for user {getattr(current_user, 'email', 'unknown')}")
-            flash('Invalid user role. Contact support.', 'error')
-            return redirect(url_for('auth.logout'))
+            current_app.logger.warning(f"Invalid role '{user_role}' for user {getattr(current_user, 'email', 'unknown')}, defaulting to 'user'")
+            user_role = 'user'
+            session['user_role'] = user_role
+            # Update the role in the database
+            try:
+                User.objects(id=current_user.id).update_one(set__role='user')
+                current_user.role = 'user'
+            except Exception as e:
+                current_app.logger.error(f"Error updating user role: {str(e)}")
         
         # Ensure role is in session
         session['user_role'] = user_role
@@ -75,12 +81,13 @@ def index():
             current_app.logger.error(f"Error generating URL for {dashboard_endpoint}: {str(e)}")
             current_app.logger.exception("Full traceback:")
             flash('Error accessing dashboard. Please try again.', 'error')
-            return redirect(url_for('auth.login'))
+            return redirect(url_for('dashboard.user_dashboard'))
         
     except Exception as e:
         current_app.logger.error(f"Error in dashboard index: {str(e)}", exc_info=True)
-        flash('An error occurred while accessing the dashboard. Please try again.', 'error')
-        return redirect(url_for('auth.logout'))
+        flash('An error occurred while accessing the dashboard. Defaulting to user dashboard.', 'warning')
+        # Default to user dashboard on error
+        return redirect(url_for('dashboard.user_dashboard'))
 
 # Alias for backward compatibility
 bp.add_url_rule('/dashboard', 'dashboard', index)
@@ -90,10 +97,10 @@ bp.add_url_rule('/dashboard', 'dashboard', index)
 def admin_dashboard():
     """Admin dashboard view."""
     try:
-        # Ensure user is admin
-        if current_user.role != 'admin':
-            flash('Access denied. Admin privileges required.', 'danger')
-            return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
+        # Check if user is admin
+        if not hasattr(current_user, 'role') or current_user.role != 'admin':
+            flash('Insufficient privileges. Redirecting to user dashboard.', 'warning')
+            return redirect(url_for('dashboard.user_dashboard'))
         
         # Set role in session
         session['user_role'] = 'admin'
@@ -127,10 +134,10 @@ def admin_dashboard():
 def dealer_dashboard():
     """Dealer dashboard view."""
     try:
-        # Ensure user is dealer
-        if current_user.role != 'dealer':
-            flash('Access denied. Dealer privileges required.', 'danger')
-            return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
+        # Check if user is dealer, if not redirect to user dashboard
+        if not hasattr(current_user, 'role') or current_user.role != 'dealer':
+            flash('Insufficient privileges. Redirecting to user dashboard.', 'warning')
+            return redirect(url_for('dashboard.user_dashboard'))
         
         # Set role in session
         session['user_role'] = 'dealer'
