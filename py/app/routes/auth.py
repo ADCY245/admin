@@ -241,41 +241,61 @@ def reset_password(token):
 @bp.route('/welcome')
 @login_required
 def welcome():
+    """Welcome page that shows a brief welcome message and redirects to the appropriate dashboard."""
     try:
-        # Get the current user's ID from Flask-Login
-        user_id = str(current_user.get_id())
-        
+        # Ensure user is authenticated
+        if not current_user.is_authenticated:
+            current_app.logger.warning("Unauthenticated user attempted to access welcome page")
+            return redirect(url_for('auth.login'))
+            
         # Get user data from current_user (Flask-Login)
         user_data = {
-            'id': current_user.id,
-            'username': current_user.username,
-            'email': current_user.email,
-            'role': current_user.role,
-            'is_verified': current_user.is_verified,
-            'created_at': current_user.created_at if hasattr(current_user, 'created_at') else datetime.utcnow()
+            'id': getattr(current_user, 'id', ''),
+            'username': getattr(current_user, 'username', ''),
+            'email': getattr(current_user, 'email', ''),
+            'role': getattr(current_user, 'role', 'user'),
+            'is_verified': getattr(current_user, 'is_verified', False),
+            'created_at': getattr(current_user, 'created_at', datetime.utcnow())
         }
         
-        # Ensure role is set in session
-        if 'user_role' not in session or session['user_role'] != current_user.role:
-            session['user_role'] = current_user.role
+        # Ensure role is valid
+        user_role = user_data['role'].lower()
+        if user_role not in ['admin', 'dealer', 'user']:
+            user_role = 'user'
+            user_data['role'] = 'user'
         
-        # If it's an AJAX request, return JSON with redirect URL
+        # Update session role if needed
+        if session.get('user_role') != user_role:
+            session['user_role'] = user_role
+        
+        # Determine the target dashboard
+        dashboard_endpoint = f'dashboard.{user_role}_dashboard'
+        
+        # For AJAX requests, return JSON with redirect URL
         if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return jsonify({
                 'success': True,
-                'redirect': url_for(f'dashboard.{current_user.role}_dashboard')
+                'redirect': url_for(dashboard_endpoint)
             })
         
-        # For regular requests, render the welcome template
+        # For regular requests, render the welcome template with a short timeout
         return render_template('auth/welcome.html', 
-                             user=user_data,
-                             redirect_url=url_for(f'dashboard.{current_user.role}_dashboard'))
+                            user=user_data,
+                            redirect_url=url_for(dashboard_endpoint)), 200, {
+                                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                                'Pragma': 'no-cache',
+                                'Expires': '0'
+                            }
         
     except Exception as e:
-        current_app.logger.error(f"Error in welcome route: {str(e)}")
-        current_app.logger.exception("Full traceback:")
-        flash('An error occurred while loading your dashboard. Redirecting to login.', 'error')
-        return redirect(url_for('auth.login'))
+        current_app.logger.error(f"Error in welcome route: {str(e)}", exc_info=True)
+        # Instead of redirecting to login (which could cause loops), go directly to the user dashboard
+        try:
+            return redirect(url_for('dashboard.user_dashboard'))
+        except Exception as redirect_error:
+            current_app.error(f"Critical error in welcome redirect: {str(redirect_error)}")
+            # Last resort - show error page
+            return "An error occurred. Please try refreshing the page or contact support.", 500
 
 @bp.route('/logout')
 @login_required
