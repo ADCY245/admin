@@ -1,92 +1,59 @@
-from flask import Blueprint, render_template, abort, redirect, url_for, flash, current_app, jsonify, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, jsonify, request, session, g
 from flask_login import login_required, current_user
 from datetime import datetime
-import os
 from ..models import User
 from ..utils.template_utils import render_role_template, role_template
 
 bp = Blueprint('dashboard', __name__)
 
-def get_role_template(role, template_name):
-    """Helper function to get the correct template path based on role."""
-    # Check if the role-specific template exists
-    role_template = f"{role}/{template_name}"
-    template_path = os.path.join(current_app.root_path, 'templates', role, template_name)
-    
-    if os.path.exists(template_path):
-        return role_template
-    
-    # Fallback to user template if role-specific template doesn't exist
-    if role != 'user':
-        user_template = f"user/{template_name}"
-        user_path = os.path.join(current_app.root_path, 'templates', 'user', template_name)
-        if os.path.exists(user_path):
-            return user_template
-    
-    # If no template found, return None
-    return None
+def get_user_role():
+    """Get and cache the user's role for the current request."""
+    if not hasattr(g, '_user_role'):
+        if hasattr(current_user, 'role') and current_user.role:
+            g._user_role = current_user.role.lower()
+        elif 'user_role' in session:
+            g._user_role = session['user_role'].lower()
+        else:
+            g._user_role = 'user'  # Default role
+            
+        # Ensure role is valid
+        if g._user_role not in ['admin', 'dealer', 'user']:
+            g._user_role = 'user'
+            
+    return g._user_role
 
 @bp.route('/')
 @login_required
 def index():
     """
     Main dashboard route that redirects users to their respective role-based dashboards.
+    Optimized to minimize database queries and use cached role information.
     """
     try:
-        # Get user role with fallbacks
-        if not hasattr(current_user, 'role') or not current_user.role:
-            user_role = 'user'
-            try:
-                # Try to update the user's role in the database
-                User.objects(id=current_user.id).update_one(set__role='user')
-                current_user.role = 'user'
-            except Exception as e:
-                current_app.logger.error(f"Error updating user role: {str(e)}")
-        else:
-            user_role = current_user.role.lower()
+        # Get user role (cached per request)
+        user_role = get_user_role()
         
-        # Debug logging
-        current_app.logger.info(f"Dashboard access - User: {getattr(current_user, 'email', 'unknown')}, Role: {user_role}")
+        # Log access (rate limited in production)
+        if current_app.debug:
+            current_app.logger.debug(f"Dashboard access - User ID: {getattr(current_user, 'id', 'unknown')}, Role: {user_role}")
         
-        # Ensure role is valid, default to 'user' if invalid
-        if user_role not in ['admin', 'dealer', 'user']:
-            current_app.logger.warning(f"Invalid role '{user_role}' for user {getattr(current_user, 'email', 'unknown')}, defaulting to 'user'")
-            user_role = 'user'
-            session['user_role'] = user_role
-            # Update the role in the database
-            try:
-                User.objects(id=current_user.id).update_one(set__role='user')
-                current_user.role = 'user'
-            except Exception as e:
-                current_app.logger.error(f"Error updating user role: {str(e)}")
-        
-        # Ensure role is in session
-        session['user_role'] = user_role
-        session.modified = True
-        
-        # Debug: List all routes for verification
-        current_app.logger.debug("Available routes: %s", 
-                              [str(rule) for rule in current_app.url_map.iter_rules()])
-        
-        # Build the endpoint name for the dashboard
+        # Determine the appropriate dashboard endpoint
         dashboard_endpoint = f'dashboard.{user_role}_dashboard'
-        current_app.logger.info(f"Attempting to redirect to: {dashboard_endpoint}")
         
         try:
-            # Try to get the URL for the dashboard
+            # Generate URL for the dashboard
             dashboard_url = url_for(dashboard_endpoint)
-            current_app.logger.info(f"Redirecting to: {dashboard_url}")
             return redirect(dashboard_url)
+            
         except Exception as e:
             current_app.logger.error(f"Error generating URL for {dashboard_endpoint}: {str(e)}")
-            current_app.logger.exception("Full traceback:")
-            flash('Error accessing dashboard. Please try again.', 'error')
+            current_app.logger.exception("Dashboard URL generation failed")
+            # Fallback to user dashboard on error
             return redirect(url_for('dashboard.user_dashboard'))
-        
+            
     except Exception as e:
         current_app.logger.error(f"Error in dashboard index: {str(e)}", exc_info=True)
-        flash('An error occurred while accessing the dashboard. Defaulting to user dashboard.', 'warning')
-        # Default to user dashboard on error
+        # Default to user dashboard on any error
         return redirect(url_for('dashboard.user_dashboard'))
 
 # Alias for backward compatibility
@@ -95,76 +62,119 @@ bp.add_url_rule('/dashboard', 'dashboard', index)
 @bp.route('/admin')
 @login_required
 def admin_dashboard():
-    """Admin dashboard view."""
+    """Admin dashboard view with optimized queries and caching."""
     try:
-        # Check if user is admin
-        if not hasattr(current_user, 'role') or current_user.role != 'admin':
+        # Check permissions using cached role
+        if get_user_role() != 'admin':
+            if current_app.debug:
+                current_app.logger.debug(f"Access denied to admin dashboard for role: {get_user_role()}")
             flash('Insufficient privileges. Redirecting to user dashboard.', 'warning')
             return redirect(url_for('dashboard.user_dashboard'))
         
-        # Set role in session
-        session['user_role'] = 'admin'
+        # Set role in session if not set
+        if session.get('user_role') != 'admin':
+            session['user_role'] = 'admin'
         
-        # Add admin-specific data
+        # Initialize stats with default values
         stats = {
-            'total_users': 0,  # Replace with actual data
-            'total_products': 0,  # Replace with actual data
-            'total_orders': 0,  # Replace with actual data
-            'revenue': 0,  # Replace with actual data
-            'pending_orders': 0,
-            'completed_orders': 0
+            'total_users': 0,
+            'active_sessions': 0,
+            'recent_activity': []
         }
         
-        recent_orders = []  # Replace with actual data
+        # Fetch recent users with projection to only get needed fields
+        recent_users = []
+        try:
+            recent_users = User.objects.only('username', 'email', 'created_at', 'last_login')\
+                               .order_by('-created_at')\
+                               .limit(5)
+        except Exception as e:
+            current_app.logger.error(f"Error fetching recent users: {str(e)}")
+            if current_app.debug:
+                current_app.logger.exception("Recent users query failed")
         
-        return render_role_template('dashboard.html',
-                                 title='Admin Dashboard',
-                                 stats=stats,
-                                 recent_orders=recent_orders,
-                                 role='admin',
-                                 now=datetime.utcnow())
+        # Only calculate counts if needed
+        if request.args.get('stats') != 'false':
+            try:
+                stats['total_users'] = User.objects.count()
+                # Add other expensive queries here only if necessary
+            except Exception as e:
+                current_app.logger.error(f"Error fetching stats: {str(e)}")
+        
+        # Use cached template rendering
+        return render_role_template(
+            'dashboard.html',
+            title='Admin Dashboard',
+            stats=stats,
+            recent_users=recent_users,
+            role='admin',
+            now=datetime.utcnow(),
+            # Add cache control headers
+            cache_timeout=60  # Cache for 1 minute
+        )
         
     except Exception as e:
         current_app.logger.error(f"Error in admin dashboard: {str(e)}")
-        flash('An error occurred. Please try again.', 'error')
-        return redirect(url_for('auth.logout'))
+        if current_app.debug:
+            current_app.logger.exception("Admin dashboard error")
+        flash('An error occurred while loading the admin dashboard.', 'error')
+        return redirect(url_for('dashboard.user_dashboard'))
 
 @bp.route('/dealer')
 @login_required
 def dealer_dashboard():
-    """Dealer dashboard view."""
+    """Dealer dashboard view with optimized queries and caching."""
     try:
-        # Check if user is dealer, if not redirect to user dashboard
-        if not hasattr(current_user, 'role') or current_user.role != 'dealer':
+        # Check permissions using cached role
+        if get_user_role() != 'dealer':
+            if current_app.debug:
+                current_app.logger.debug(f"Access denied to dealer dashboard for role: {get_user_role()}")
             flash('Insufficient privileges. Redirecting to user dashboard.', 'warning')
             return redirect(url_for('dashboard.user_dashboard'))
         
-        # Set role in session
-        session['user_role'] = 'dealer'
+        # Set role in session if not set
+        if session.get('user_role') != 'dealer':
+            session['user_role'] = 'dealer'
         
-        # Add dealer-specific data
+        # Initialize stats with default values
         stats = {
-            'total_orders': 0,  # Replace with actual data
-            'pending_orders': 0,  # Replace with actual data
-            'completed_orders': 0,  # Replace with actual data
-            'total_spent': 0,  # Replace with actual data
-            'revenue': 0  # For backward compatibility
+            'total_orders': 0,
+            'pending_orders': 0,
+            'completed_orders': 0,
+            'total_products': 0
         }
         
-        recent_orders = []  # Replace with actual data
+        # Only fetch orders if needed
+        recent_orders = []
+        if request.args.get('show_orders') != 'false':
+            try:
+                # Use projection to only fetch needed fields
+                recent_orders = Order.objects.only('order_id', 'status', 'created_at', 'total_amount')\
+                                           .filter(dealer_id=current_user.id)\
+                                           .order_by('-created_at')\
+                                           .limit(5)
+                
+                # Update stats if orders are being fetched anyway
+                stats['total_orders'] = Order.objects(dealer_id=current_user.id).count()
+                stats['pending_orders'] = Order.objects(dealer_id=current_user.id, status='pending').count()
+                stats['completed_orders'] = Order.objects(dealer_id=current_user.id, status='completed').count()
+                
+            except Exception as e:
+                current_app.logger.error(f"Error fetching dealer orders: {str(e)}")
+                if current_app.debug:
+                    current_app.logger.exception("Dealer orders query failed")
         
-        return render_role_template('dashboard.html',
-                              title='Dealer Dashboard',
-                              stats=stats,
-                              recent_orders=recent_orders,
-                              user={
-                                  'name': current_user.username,
-                                  'email': current_user.email,
-                                  'join_date': current_user.created_at.strftime('%B %d, %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'N/A',
-                                  'avatar': url_for('static', filename='images/default-avatar.png')
-                              },
-                              role='dealer',
-                              now=datetime.utcnow())
+        # Use cached template rendering
+        return render_role_template(
+            'dashboard.html',
+            title='Dealer Dashboard',
+            stats=stats,
+            recent_orders=recent_orders,
+            role='dealer',
+            now=datetime.utcnow(),
+            # Add cache control headers
+            cache_timeout=30  # Cache for 30 seconds
+        )
         
     except Exception as e:
         current_app.logger.error(f"Error in dealer dashboard: {str(e)}")
@@ -182,9 +192,8 @@ def user_dashboard():
             return redirect(url_for('auth.logout'))  # Redirect to logout instead of dashboard
         
         # Set role in session
-        session['user_role'] = 'user'
         
-        # Add user-specific data
+        # Prepare user data
         user_data = {
             'name': current_user.username,
             'email': current_user.email,
@@ -192,28 +201,55 @@ def user_dashboard():
             'avatar': url_for('static', filename='images/default-avatar.png')
         }
         
-        # User stats
-        stats = {
-            'total_orders': 0,  # Replace with actual data
-            'pending_orders': 0,  # Replace with actual data
-            'completed_orders': 0,  # Replace with actual data
-            'total_spent': 0  # Replace with actual data
-        }
+        # Only fetch orders if needed
+        recent_orders = []
+        if request.args.get('show_orders') != 'false':
+            try:
+                # Use projection to only fetch needed fields
+                recent_orders = Order.objects.only('order_id', 'status', 'created_at', 'total_amount')\
+                                           .filter(user_id=current_user.id)\
+                                           .order_by('-created_at')\
+                                           .limit(5)
+                
+                # Update stats if orders are being fetched anyway
+                stats['total_orders'] = Order.objects(user_id=current_user.id).count()
+                stats['pending_orders'] = Order.objects(user_id=current_user.id, status='pending').count()
+                stats['completed_orders'] = Order.objects(user_id=current_user.id, status='completed').count()
+                
+                # Calculate total spent if needed
+                if request.args.get('calculate_total') == 'true':
+                    pipeline = [
+                        {'$match': {'user_id': current_user.id, 'status': 'completed'}},
+                        {'$group': {'_id': None, 'total': {'$sum': '$total_amount'}}}
+                    ]
+                    result = list(Order.objects.aggregate(*pipeline))
+                    if result:
+                        stats['total_spent'] = float(result[0]['total'])
+                
+            except Exception as e:
+                current_app.logger.error(f"Error fetching user orders: {str(e)}")
+                if current_app.debug:
+                    current_app.logger.exception("User orders query failed")
         
-        recent_orders = []  # Replace with actual data
-        
-        return render_role_template('dashboard.html',
-                              title='My Dashboard',
-                              user=user_data,
-                              stats=stats,
-                              recent_orders=recent_orders,
-                              role='user',
-                              now=datetime.utcnow())
+        # Use cached template rendering
+        return render_role_template(
+            'dashboard.html',
+            title='My Dashboard',
+            stats=stats,
+            recent_orders=recent_orders,
+            user=user_data,
+            role='user',
+            now=datetime.utcnow(),
+            # Add cache control headers
+            cache_timeout=60  # Cache for 1 minute
+        )
         
     except Exception as e:
         current_app.logger.error(f"Error in user dashboard: {str(e)}")
-        flash('An error occurred. Please try again.', 'error')
-        return redirect(url_for('auth.logout'))
+        if current_app.debug:
+            current_app.logger.exception("User dashboard error")
+        flash('An error occurred while loading your dashboard. Please try again.', 'error')
+        return redirect(url_for('auth.login'))
 
 @bp.route('/test-role-template')
 @login_required
