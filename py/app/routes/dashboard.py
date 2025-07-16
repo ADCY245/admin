@@ -32,29 +32,38 @@ def index():
     Main dashboard route that redirects users to their respective role-based dashboards.
     """
     try:
-        # Get user role from current_user
-        user_role = getattr(current_user, 'role', 'user')
+        if not hasattr(current_user, 'role') or not current_user.role:
+            # If user has no role, assign default 'user' role
+            current_user.role = 'user'
+            current_user.save()
+            
+        user_role = current_user.role.lower()
+        
+        # Debug logging
+        current_app.logger.info(f"Dashboard access attempt - User: {current_user.email}, Role: {user_role}")
         
         # Ensure role is valid
         if user_role not in ['admin', 'dealer', 'user']:
+            current_app.logger.error(f"Invalid role '{user_role}' for user {current_user.email}")
             flash('Invalid user role. Contact support.', 'error')
             return redirect(url_for('auth.logout'))
         
         # Set role in session for consistency
         session['user_role'] = user_role
         
-        # Redirect to appropriate dashboard
-        if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({
-                'success': True,
-                'redirect': url_for(f'dashboard.{user_role}_dashboard')
-            })
+        # Debug: Print available routes for troubleshooting
+        current_app.logger.debug(f"Available routes: {[str(rule) for rule in current_app.url_map.iter_rules()]}")
         
-        return redirect(url_for(f'dashboard.{user_role}_dashboard'))
+        # Build the endpoint name for the dashboard
+        dashboard_endpoint = f'dashboard.{user_role}_dashboard'
+        current_app.logger.info(f"Redirecting to dashboard: {dashboard_endpoint}")
+        
+        # Redirect to the appropriate dashboard
+        return redirect(url_for(dashboard_endpoint))
         
     except Exception as e:
-        current_app.logger.error(f"Error in dashboard index: {str(e)}")
-        flash('An error occurred. Please try again.', 'error')
+        current_app.logger.error(f"Error in dashboard index: {str(e)}", exc_info=True)
+        flash('An error occurred while accessing the dashboard. Please try again.', 'error')
         return redirect(url_for('auth.logout'))
 
 # Alias for backward compatibility

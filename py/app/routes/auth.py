@@ -45,14 +45,25 @@ def login():
             
             # Ensure we have the username and role before logging in
             user.username = user.username or user.email.split('@')[0]
-            user.role = user.role or 'user'
+            user.role = user.role or 'user'  # Default to 'user' if role is not set
+            
+            # Save any changes to the user object
+            user.save()
             
             # Set role in session
             session['user_role'] = user.role
             
+            # Log the user in
             login_user(user, remember=True, force=True)
             
-            # Always redirect to the appropriate dashboard based on role
+            # Debug logging
+            current_app.logger.info(f"User {user.email} logged in with role: {user.role}")
+            
+            # Redirect to the appropriate dashboard based on role
+            next_page = request.args.get('next')
+            if next_page:
+                return redirect(next_page)
+                
             if user.role == 'admin':
                 return redirect(url_for('dashboard.admin_dashboard'))
             elif user.role == 'dealer':
