@@ -154,51 +154,44 @@
     {
       "id": 25,
       "name": "MTech Primo SF",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 27,
       "name": "MTech Web Press",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 28,
       "name": "MTech Web X Press",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 29,
       "name": "MTech Web Primo",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 30,
       "name": "MTech Strip Plate PLY",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 31,
       "name": "MTech Strip Plate PLR",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     },
     {
       "id": 32,
       "name": "MTech Strip Plate UV Black",
-      "ratePerSqMt": null,
-      "ratePerSqYard": null,
-      "needsRates": true
+      "ratePerSqMt": 0,
+      "ratePerSqYard": 0
     }
   ]
 }
